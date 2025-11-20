@@ -1,0 +1,5 @@
+{
+  "name": "BillScan AI",
+  "description": "Smart bill tracking and expense organization powered by Gemini AI. Upload receipts, extract data automatically, and track your spending.",
+  "requestFramePermissions": []
+}
