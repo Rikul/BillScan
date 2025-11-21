@@ -1,6 +1,6 @@
-# BillScan AI
+# BillScan
 
-Use LLM to scan a receipt or bill and store it.
+Use a MultiModal to scan a receipt or bill and store it.
 
 ## Run Locally
 
