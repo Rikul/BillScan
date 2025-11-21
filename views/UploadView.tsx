@@ -105,7 +105,7 @@ const UploadView: React.FC<UploadViewProps> = ({ onBack }) => {
             <ScanLine className="w-10 h-10 text-indigo-600 animate-bounce" />
         </div>
         <h2 className="text-xl font-bold text-gray-900 mb-2">Analyzing Receipt...</h2>
-        <p className="text-gray-500 max-w-xs">Using Gemini to extract store details, dates, and line items.</p>
+        <p className="text-gray-500 max-w-xs">Using the model to extract store details, dates, and line items.</p>
       </div>
     );
   }

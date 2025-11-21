@@ -35,7 +35,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   return (
     <div className="min-h-screen pb-24 bg-gray-50 animate-fade-in">
       <Header 
-        title="BillScan AI"
+        title="BillScan"
       />
 
       <div className="px-6 max-w-7xl mx-auto space-y-8">

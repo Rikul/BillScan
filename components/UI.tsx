@@ -38,15 +38,17 @@ export const Card: React.FC<{ children: React.ReactNode; className?: string; onC
 
 export const Header: React.FC<{ title: string; onBack?: () => void; action?: React.ReactNode }> = ({ title, onBack, action }) => (
   <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-100 px-6 py-4 mb-6 flex items-center justify-between transition-all">
-    <div className="flex items-center gap-3">
+    <div className="flex items-left gap-3">
       {onBack && (
         <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600">
           <ArrowLeft className="w-5 h-5" />
         </button>
       )}
-      <h1 className="text-xl font-bold text-gray-900 tracking-tight">{title}</h1>
     </div>
-    {action}
+    <div className="text-lg font-bold text-gray-900">{title}</div>
+    <div className="flex items-center gap-3">
+        {action}
+    </div>
   </div>
 );
 
