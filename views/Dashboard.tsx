@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Search, Receipt, TrendingUp, Calendar, DollarSign } from "lucide-react";
 import { BillRecord } from "../types";
 import { getBills } from "../services/storageService";
 import { Button, Card, Header, Input } from "../components/UI";
 import { formatCurrency, formatDate } from "../utils";
 
-interface DashboardProps {
-  onNavigate: (view: 'upload' | 'details', id?: string) => void;
-}
-
-const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
+const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [bills, setBills] = useState<BillRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -17,7 +15,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     setBills(getBills());
   }, []);
 
-  const filteredBills = bills.filter(b => 
+  const filteredBills = bills.filter(b =>
     b.storeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     b.date.includes(searchTerm)
   );
@@ -28,13 +26,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     const date = new Date(curr.date);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays <= 30 ? acc + (curr.total || 0) : acc;
   }, 0);
 
   return (
     <div className="min-h-screen pb-24 bg-gray-50 animate-fade-in">
-      <Header 
+      <Header
         title="BillScan"
       />
 
@@ -66,13 +64,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Quick Actions</h3>
                 <p className="text-gray-500 mb-6">Manage your expenses efficiently. Upload receipts to track spending automatically.</p>
                 <div className="flex gap-4">
-                     <Button onClick={() => onNavigate('upload')} className="flex-1">
+                     <Button onClick={() => navigate('/upload')} className="flex-1">
                         <Plus className="w-5 h-5 mr-2" /> Upload Receipt
                      </Button>
                      <div className="flex-1 relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input 
-                            placeholder="Search history..." 
+                        <Input
+                            placeholder="Search history..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-10"
@@ -85,8 +83,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         {/* Search for Mobile */}
         <div className="relative md:hidden">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input 
-            placeholder="Search stores or dates..." 
+          <Input
+            placeholder="Search stores or dates..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 bg-white"
@@ -99,7 +97,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Recent Bills</h3>
             <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{filteredBills.length} found</span>
           </div>
-          
+
           {filteredBills.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
               <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -111,9 +109,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredBills.map((bill) => (
-                <Card 
-                  key={bill.id} 
-                  onClick={() => onNavigate('details', bill.id)}
+                <Card
+                  key={bill.id}
+                  onClick={() => navigate(`/bill/${bill.id}`)}
                   className="p-4 flex flex-col gap-4 hover:bg-gray-50 transition-all hover:-translate-y-1 duration-200 group"
                 >
                   <div className="flex items-start justify-between">
@@ -134,7 +132,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                         <span className="font-bold text-gray-900 block text-lg">{formatCurrency(bill.total, bill.currency)}</span>
                     </div>
                   </div>
-                  
+
                   <div className="pt-3 mt-auto border-t border-gray-100 flex justify-between items-center text-xs text-gray-500">
                       <span>{bill.lineItems?.length || 0} items</span>
                       <span className="group-hover:translate-x-1 transition-transform">View Details &rarr;</span>
@@ -148,8 +146,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       {/* Floating Action Button (Mobile Only) */}
       <div className="fixed bottom-6 right-6 z-20 md:hidden">
-        <button 
-          onClick={() => onNavigate('upload')}
+        <button
+          onClick={() => navigate('/upload')}
           className="w-14 h-14 bg-indigo-600 rounded-full shadow-xl hover:bg-indigo-700 flex items-center justify-center text-white transition-transform hover:scale-105 active:scale-95 focus:ring-4 focus:ring-indigo-200"
         >
           <Plus className="w-6 h-6" />

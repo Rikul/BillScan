@@ -1,26 +1,28 @@
 import React, { useEffect, useState } from "react";
-import { Trash2, Calendar, MapPin, Receipt as ReceiptIcon, Download } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Trash2, Calendar, MapPin, Receipt as ReceiptIcon } from "lucide-react";
 import { BillRecord } from "../types";
 import { getBillById, deleteBill } from "../services/storageService";
-import { Button, Card, Header } from "../components/UI";
+import { Card, Header } from "../components/UI";
 import { formatCurrency, formatDate } from "../utils";
 
-interface DetailsViewProps {
-  id: string;
-  onBack: () => void;
-}
-
-const DetailsView: React.FC<DetailsViewProps> = ({ id, onBack }) => {
+const DetailsView: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [bill, setBill] = useState<BillRecord | undefined>();
 
   useEffect(() => {
-    setBill(getBillById(id));
+    if (id) {
+      setBill(getBillById(id));
+    }
   }, [id]);
 
+  const handleBack = () => navigate('/');
+
   const handleDelete = () => {
-    if (confirm("Are you sure you want to delete this bill?")) {
+    if (id && confirm("Are you sure you want to delete this bill?")) {
       deleteBill(id);
-      onBack();
+      navigate('/');
     }
   };
 
@@ -28,9 +30,9 @@ const DetailsView: React.FC<DetailsViewProps> = ({ id, onBack }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 animate-fade-in">
-      <Header 
-        title="Bill Details" 
-        onBack={onBack}
+      <Header
+        title="Bill Details"
+        onBack={handleBack}
         action={
             <button onClick={handleDelete} className="p-2 rounded-full text-red-600 hover:bg-red-50 transition-colors" title="Delete Bill">
                 <Trash2 className="w-5 h-5" />
@@ -79,7 +81,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({ id, onBack }) => {
                                 <p className="text-lg text-gray-900 font-medium">{bill.storeName}</p>
                             </div>
                         </div>
-                        
+
                         <div className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg transition-colors">
                             <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600">
                                 <Calendar className="w-6 h-6" />

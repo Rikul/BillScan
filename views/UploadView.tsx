@@ -1,16 +1,14 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Upload, Camera, Check, AlertCircle, ScanLine, Save } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { Camera, Check, AlertCircle, ScanLine } from "lucide-react";
 import { extractBillData } from "../services/geminiService";
 import { saveBill } from "../services/storageService";
 import { resizeImage, formatCurrency } from "../utils";
-import { BillData, BillRecord } from "../types";
+import { BillData } from "../types";
 import { Button, Card, Header, Input, Label } from "../components/UI";
 
-interface UploadViewProps {
-  onBack: () => void;
-}
-
-const UploadView: React.FC<UploadViewProps> = ({ onBack }) => {
+const UploadView: React.FC = () => {
+  const navigate = useNavigate();
   const [image, setImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [data, setData] = useState<BillData | null>(null);
@@ -26,11 +24,11 @@ const UploadView: React.FC<UploadViewProps> = ({ onBack }) => {
       try {
         setIsAnalyzing(true);
         setError(null);
-        
+
         // Resize first to save localstorage space and speed up upload
         const resizedImage = await resizeImage(file);
         setImage(resizedImage);
-        
+
         // Process with Gemini
         const result = await extractBillData(resizedImage);
         initializeRecord(result, resizedImage);
@@ -57,7 +55,7 @@ const UploadView: React.FC<UploadViewProps> = ({ onBack }) => {
   const initializeRecord = (initialData: BillData, imgData: string) => {
     const newId = crypto.randomUUID();
     const created = new Date().toISOString();
-    
+
     setData(initialData);
     setRecordId(newId);
     setCreatedAt(created);
@@ -75,7 +73,7 @@ const UploadView: React.FC<UploadViewProps> = ({ onBack }) => {
 
   const updateField = (field: keyof BillData, value: any) => {
     if (!data || !recordId || !image || !createdAt) return;
-    
+
     let newData = { ...data, [field]: value };
 
     // Auto-calculate Total if Subtotal or Tax changes
@@ -97,6 +95,18 @@ const UploadView: React.FC<UploadViewProps> = ({ onBack }) => {
     });
   };
 
+  const handleBack = () => navigate('/');
+  const handleUploadAnother = () => {
+    window.location.reload();
+    //setImage(null);
+    //setData(null);
+    //setRecordId(null);
+    //setCreatedAt(null);
+    //setError(null);
+    //setIsSaved(false);
+  }
+
+
   if (isAnalyzing) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
@@ -113,9 +123,9 @@ const UploadView: React.FC<UploadViewProps> = ({ onBack }) => {
   if (!image) {
     return (
       <div className="min-h-screen bg-gray-50 animate-fade-in">
-        <Header title="Upload Receipt" onBack={onBack} />
+        <Header title="Upload Receipt" onBack={handleBack} />
         <div className="p-6 flex flex-col h-[calc(100vh-100px)] items-center justify-center">
-          <Card 
+          <Card
             className="w-full max-w-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center p-12 bg-gray-50/50 hover:bg-gray-100 transition-colors cursor-pointer group"
             onClick={() => fileInputRef.current?.click()}
           >
@@ -125,13 +135,13 @@ const UploadView: React.FC<UploadViewProps> = ({ onBack }) => {
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Take a Photo</h3>
             <p className="text-gray-500 text-center mb-8 max-w-sm">Upload a clear image of your receipt to automatically extract details.</p>
             <Button variant="primary" className="px-8">Select Image</Button>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              accept="image/*" 
-              capture="environment" 
-              onChange={handleFileChange} 
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileChange}
             />
           </Card>
           <div className="mt-8 text-center text-sm text-gray-400">
@@ -144,16 +154,21 @@ const UploadView: React.FC<UploadViewProps> = ({ onBack }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 animate-fade-in">
-      <Header 
-        title="Verify Details" 
-        onBack={onBack} 
+      <Header
+        title="Verify Details"
+        onBack={handleBack}
         action={
-          <Button onClick={onBack} variant="primary">
+        <div className="text-sm text-gray-500">
+          <Button onClick={handleBack} variant="primary">
              {isSaved ? <span className="flex items-center"><Check className="w-4 h-4 mr-1"/> Saved</span> : "Done"}
           </Button>
+          <Button onClick={handleUploadAnother} variant="secondary" className="ml-3">
+                Upload Next Receipt
+          </Button>
+        </div>
         }
       />
-      
+
       <div className="px-6 max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row gap-6">
             {/* Image Preview - Left Side on Desktop */}
@@ -161,8 +176,8 @@ const UploadView: React.FC<UploadViewProps> = ({ onBack }) => {
                 <div className="relative h-64 md:h-full rounded-xl overflow-hidden bg-gray-900 shadow-inner group border border-gray-200">
                 <img src={image} alt="Receipt" className="w-full h-full object-contain bg-gray-900/50" />
                 <div className="absolute bottom-3 right-3">
-                    <button 
-                        onClick={() => window.open(image, '_blank')} 
+                    <button
+                        onClick={() => window.open(image, '_blank')}
                         className="bg-black/50 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm hover:bg-black/70"
                     >
                         View Full Image
@@ -186,30 +201,30 @@ const UploadView: React.FC<UploadViewProps> = ({ onBack }) => {
                             <h3 className="text-lg font-bold text-gray-900">Receipt Details</h3>
                             <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded">Autosave On</span>
                         </div>
-                    
+
                         <div>
                             <Label>Store Name</Label>
-                            <Input 
-                            value={data.storeName} 
-                            onChange={(e) => updateField('storeName', e.target.value)} 
+                            <Input
+                            value={data.storeName}
+                            onChange={(e) => updateField('storeName', e.target.value)}
                             placeholder="e.g. Walmart"
                             />
                         </div>
-                        
+
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <Label>Date</Label>
-                                <Input 
+                                <Input
                                 type="date"
-                                value={data.date} 
-                                onChange={(e) => updateField('date', e.target.value)} 
+                                value={data.date}
+                                onChange={(e) => updateField('date', e.target.value)}
                                 />
                             </div>
                              <div>
                                 <Label>Currency</Label>
-                                <Input 
-                                value={data.currency || 'USD'} 
-                                onChange={(e) => updateField('currency', e.target.value)} 
+                                <Input
+                                value={data.currency || 'USD'}
+                                onChange={(e) => updateField('currency', e.target.value)}
                                 placeholder="USD"
                                 />
                             </div>
@@ -218,21 +233,21 @@ const UploadView: React.FC<UploadViewProps> = ({ onBack }) => {
                         <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
                             <div>
                                 <Label>Subtotal</Label>
-                                <Input 
+                                <Input
                                 type="number"
                                 step="0.01"
-                                value={data.subtotal || ''} 
-                                onChange={(e) => updateField('subtotal', e.target.value)} 
+                                value={data.subtotal || ''}
+                                onChange={(e) => updateField('subtotal', e.target.value)}
                                 placeholder="0.00"
                                 />
                             </div>
                             <div>
                                 <Label>Tax</Label>
-                                <Input 
+                                <Input
                                 type="number"
                                 step="0.01"
-                                value={data.tax || ''} 
-                                onChange={(e) => updateField('tax', e.target.value)} 
+                                value={data.tax || ''}
+                                onChange={(e) => updateField('tax', e.target.value)}
                                 placeholder="0.00"
                                 />
                             </div>
@@ -240,11 +255,11 @@ const UploadView: React.FC<UploadViewProps> = ({ onBack }) => {
 
                          <div className="pt-2">
                             <Label>Total Amount (Subtotal + Tax)</Label>
-                            <Input 
+                            <Input
                             type="number"
                             step="0.01"
-                            value={data.total} 
-                            onChange={(e) => updateField('total', parseFloat(e.target.value) || 0)} 
+                            value={data.total}
+                            onChange={(e) => updateField('total', parseFloat(e.target.value) || 0)}
                             className="font-bold text-lg text-indigo-600"
                             />
                         </div>

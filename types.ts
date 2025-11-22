@@ -20,9 +20,3 @@ export interface BillRecord extends BillData {
   createdAt: string; // ISO Timestamp
 }
 
-export type ViewState = 'dashboard' | 'upload' | 'details';
-
-export interface AppState {
-  view: ViewState;
-  selectedBillId?: string;
-}
