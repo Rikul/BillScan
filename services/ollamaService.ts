@@ -29,7 +29,7 @@ Return the data in valid JSON format with this exact structure:
 }`;
 
   const response = await ollama.chat({
-    model: process.env.OLLAMA_MODEL || "llava",
+    model: process.env.OLLAMA_MODEL || "gemma3",
     messages: [
       {
         role: "user",

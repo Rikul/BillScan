@@ -12,7 +12,9 @@ export default defineConfig(({ mode }) => {
       plugins: [react()],
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+        'process.env.OLLAMA_HOST': JSON.stringify(env.OLLAMA_HOST),
+        'process.env.OLLAMA_MODEL': JSON.stringify(env.OLLAMA_MODEL),
       },
       resolve: {
         alias: {
