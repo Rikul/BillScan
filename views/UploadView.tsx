@@ -52,7 +52,7 @@ const UploadView: React.FC = () => {
     }
   };
 
-  const initializeRecord = (initialData: BillData, imgData: string) => {
+  const initializeRecord = async (initialData: BillData, imgData: string) => {
     const newId = crypto.randomUUID();
     const created = new Date().toISOString();
 
@@ -61,14 +61,18 @@ const UploadView: React.FC = () => {
     setCreatedAt(created);
 
     // Autosave immediately
-    saveBill({
-      ...initialData,
-      id: newId,
-      imageData: imgData,
-      createdAt: created,
-    });
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2000);
+    try {
+      await saveBill({
+        ...initialData,
+        id: newId,
+        imageData: imgData,
+        createdAt: created,
+      });
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2000);
+    } catch (e) {
+      console.error("Failed to save bill", e);
+    }
   };
 
   const updateField = (field: keyof BillData, value: any) => {
@@ -92,7 +96,7 @@ const UploadView: React.FC = () => {
       id: recordId,
       imageData: image,
       createdAt: createdAt,
-    });
+    }).catch(err => console.error("Autosave failed", err));
   };
 
   const handleBack = () => navigate('/');

@@ -12,7 +12,11 @@ const Dashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    setBills(getBills());
+    async function fetchBills() {
+      const data = await getBills();
+      setBills(data);
+    }
+    fetchBills();
   }, []);
 
   const filteredBills = bills.filter(b =>

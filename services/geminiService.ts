@@ -1,7 +1,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { BillData } from "../types";
 
-const genAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Only initialize if key is present to avoid crash on load
+const apiKey = process.env.API_KEY;
+if (!apiKey) {
+  throw new Error('API_KEY environment variable is required');
+}
+const genAI = new GoogleGenAI({ apiKey });
 
 export const extractBillData = async (base64Image: string): Promise<BillData> => {
   // Remove data URL prefix if present
