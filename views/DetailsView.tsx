@@ -13,15 +13,18 @@ const DetailsView: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      setBill(getBillById(id));
+      (async () => {
+        const fetchedBill = await getBillById(id);
+        setBill(fetchedBill);
+      })();
     }
   }, [id]);
 
   const handleBack = () => navigate('/');
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (id && confirm("Are you sure you want to delete this bill?")) {
-      deleteBill(id);
+      await deleteBill(id);
       navigate('/');
     }
   };

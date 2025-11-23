@@ -22,9 +22,8 @@ export interface BillRecord extends BillData {
 
 // Generic storage service interface to enable pluggable backends
 export interface IStorageService {
-  saveBill(bill: BillRecord): void | Promise<void>;
-  getBills(): BillRecord[] | Promise<BillRecord[]>;
-  getBillById(id: string): BillRecord | undefined | Promise<BillRecord | undefined>;
-  deleteBill(id: string): void | Promise<void>;
+  saveBill(bill: BillRecord): Promise<void> | void;
+  getBills(): Promise<BillRecord[]> | BillRecord[];
+  getBillById(id: string): Promise<BillRecord | undefined> | BillRecord | undefined;
+  deleteBill(id: string): Promise<void> | void;
 }
-
