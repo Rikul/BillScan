@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, Check, AlertCircle, ScanLine } from "lucide-react";
-import { extractBillData } from "../services/geminiService";
+import { extractBillData } from "../services/aiService";
 import { saveBill } from "../services/storageService";
 import { resizeImage, formatCurrency } from "../utils";
 import { BillData } from "../types";
@@ -25,12 +25,12 @@ const UploadView: React.FC = () => {
         setIsAnalyzing(true);
         setError(null);
 
-        // Resize first to save localstorage space and speed up upload
+        // Resize image for display and storage (to save localstorage space)
         const resizedImage = await resizeImage(file);
         setImage(resizedImage);
 
-        // Process with Gemini
-        const result = await extractBillData(resizedImage);
+        // Pass the original file to AI service - it will handle resizing based on the service type
+        const result = await extractBillData(file);
         initializeRecord(result, resizedImage);
       } catch (err) {
         console.error(err);

@@ -1,4 +1,4 @@
-import { Ollama } from "ollama";
+import { Ollama } from "ollama/browser";
 import { BillData } from "../types";
 
 const ollama = new Ollama({ 
