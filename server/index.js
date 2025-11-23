@@ -49,6 +49,21 @@ app.post('/api/bills', async (req, res) => {
   if (!bill.id) {
     return res.status(400).json({ error: 'Bill ID is required' });
   }
+  // Validate numeric fields
+  if (
+    typeof bill.subtotal !== 'number' ||
+    typeof bill.tax !== 'number' ||
+    typeof bill.total !== 'number' ||
+    isNaN(bill.subtotal) ||
+    isNaN(bill.tax) ||
+    isNaN(bill.total)
+  ) {
+    return res.status(400).json({ error: 'Invalid numeric fields' });
+  }
+  // Validate required fields
+  if (!bill.storeName || !bill.date || !bill.currency) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
 
   try {
     const db = await getDb();
