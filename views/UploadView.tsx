@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, Check, AlertCircle, ScanLine } from "lucide-react";
-import { extractBillData } from "../services/geminiService";
+import { extractBillData } from "../services/aiService";
 import { saveBill } from "../services/storageService";
 import { resizeImage, formatCurrency } from "../utils";
 import { BillData } from "../types";
@@ -29,7 +29,7 @@ const UploadView: React.FC = () => {
         const resizedImage = await resizeImage(file);
         setImage(resizedImage);
 
-        // Process with Gemini
+        // Process with configured AI service
         const result = await extractBillData(resizedImage);
         initializeRecord(result, resizedImage);
       } catch (err) {

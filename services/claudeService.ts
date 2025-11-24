@@ -1,16 +1,13 @@
+import Anthropic from "@anthropic-ai/sdk";
 import { BillData, IAIService } from "../types";
 
-let ollama: any = null;
+// Only initialize if key is present
+const apiKey = process.env.ANTHROPIC_API_KEY;
+if (!apiKey) {
+  throw new Error('ANTHROPIC_API_KEY environment variable is required');
+}
 
-const getOllama = async () => {
-  if (!ollama) {
-    const { Ollama } = await import("ollama");
-    ollama = new Ollama({ 
-      host: process.env.OLLAMA_HOST || "http://localhost:11434"
-    });
-  }
-  return ollama;
-};
+const anthropic = new Anthropic({ apiKey });
 
 const extractBillData = async (base64Image: string): Promise<BillData> => {
   // Remove data URL prefix if present
@@ -18,7 +15,7 @@ const extractBillData = async (base64Image: string): Promise<BillData> => {
 
   const prompt = `Extract the following information from this receipt image: Store Name, Date (YYYY-MM-DD format), Subtotal, Tax, Total Amount, and a list of line items (description, quantity, price). If a field is not found, estimate reasonably or return 0/null. Normalize prices to numbers.
 
-Return the data in valid JSON format with this exact structure:
+Return ONLY valid JSON with this exact structure (no markdown, no additional text):
 {
   "storeName": "string",
   "date": "YYYY-MM-DD",
@@ -35,22 +32,34 @@ Return the data in valid JSON format with this exact structure:
   ]
 }`;
 
-  const ollamaInstance = await getOllama();
-  const response = await ollamaInstance.chat({
-    model: process.env.OLLAMA_MODEL || "gemma3",
+  const response = await anthropic.messages.create({
+    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20241022",
+    max_tokens: 1024,
     messages: [
       {
         role: "user",
-        content: prompt,
-        images: [base64Data],
+        content: [
+          {
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: "image/jpeg",
+              data: base64Data,
+            },
+          },
+          {
+            type: "text",
+            text: prompt,
+          },
+        ],
       },
     ],
-    format: "json",
   });
 
-  if (response.message.content) {
+  const content = response.content[0];
+  if (content.type === "text") {
     try {
-      const data = JSON.parse(response.message.content) as BillData;
+      const data = JSON.parse(content.text) as BillData;
       
       // Validate required fields
       if (!data.storeName || data.total === undefined || !data.lineItems) {
@@ -63,11 +72,11 @@ Return the data in valid JSON format with this exact structure:
     }
   }
   
-  throw new Error("No content in response");
+  throw new Error("No text content in response");
 };
 
 // Export service implementation
-export const ollamaService: IAIService = {
+export const claudeService: IAIService = {
   extractBillData,
 };
 
