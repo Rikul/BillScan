@@ -1,5 +1,5 @@
 // Helper to resize image before storing to avoid LocalStorage limits
-export const resizeImage = (file: File, maxWidth = 800): Promise<string> => {
+export const resizeImage = (file: File, maxWidth = 1500): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -21,7 +21,7 @@ export const resizeImage = (file: File, maxWidth = 800): Promise<string> => {
         
         const ctx = elem.getContext('2d');
         ctx?.drawImage(img, 0, 0, elem.width, elem.height);
-        resolve(ctx?.canvas.toDataURL('image/jpeg', 0.7) || '');
+        resolve(ctx?.canvas.toDataURL('image/jpeg', 1) || '');
       };
       img.onerror = (error) => reject(error);
     };
