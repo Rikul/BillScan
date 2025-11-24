@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { BillData } from "../types";
+import { BillData, IAIService } from "../types";
 
 // Only initialize if key is present to avoid crash on load
 const apiKey = process.env.API_KEY;
@@ -8,7 +8,7 @@ if (!apiKey) {
 }
 const genAI = new GoogleGenAI({ apiKey });
 
-export const extractBillData = async (base64Image: string): Promise<BillData> => {
+const extractBillData = async (base64Image: string): Promise<BillData> => {
   // Remove data URL prefix if present
   const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
 
@@ -62,3 +62,11 @@ export const extractBillData = async (base64Image: string): Promise<BillData> =>
   
   throw new Error("Failed to parse bill data");
 };
+
+// Export service implementation
+export const geminiService: IAIService = {
+  extractBillData,
+};
+
+// For backward compatibility
+export { extractBillData };

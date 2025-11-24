@@ -1,16 +1,13 @@
+import OpenAI from "openai";
 import { BillData, IAIService } from "../types";
 
-let ollama: any = null;
+// Only initialize if key is present
+const apiKey = process.env.OPENAI_API_KEY;
+if (!apiKey) {
+  throw new Error('OPENAI_API_KEY environment variable is required');
+}
 
-const getOllama = async () => {
-  if (!ollama) {
-    const { Ollama } = await import("ollama");
-    ollama = new Ollama({ 
-      host: process.env.OLLAMA_HOST || "http://localhost:11434"
-    });
-  }
-  return ollama;
-};
+const openai = new OpenAI({ apiKey });
 
 const extractBillData = async (base64Image: string): Promise<BillData> => {
   // Remove data URL prefix if present
@@ -35,25 +32,33 @@ Return the data in valid JSON format with this exact structure:
   ]
 }`;
 
-  const ollamaInstance = await getOllama();
-  const response = await ollamaInstance.chat({
-    model: process.env.OLLAMA_MODEL || "gemma3",
+  const response = await openai.chat.completions.create({
+    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
     messages: [
       {
         role: "user",
-        content: prompt,
-        images: [base64Data],
+        content: [
+          { type: "text", text: prompt },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:image/jpeg;base64,${base64Data}`,
+            },
+          },
+        ],
       },
     ],
-    format: "json",
+    response_format: { type: "json_object" },
   });
 
-  if (response.message.content) {
+  const content = response.choices[0]?.message?.content;
+  if (content) {
     try {
-      const data = JSON.parse(response.message.content) as BillData;
+      const data = JSON.parse(content) as BillData;
       
       // Validate required fields
-      if (!data.storeName || data.total === undefined || !data.lineItems) {
+      if (!data.storeName || !data.date || data.subtotal === undefined || 
+          data.tax === undefined || data.total === undefined || !data.lineItems) {
         throw new Error("Missing required fields in response");
       }
       
@@ -67,7 +72,7 @@ Return the data in valid JSON format with this exact structure:
 };
 
 // Export service implementation
-export const ollamaService: IAIService = {
+export const openaiService: IAIService = {
   extractBillData,
 };
 

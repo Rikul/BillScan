@@ -12,7 +12,42 @@ BillScan consists of two parts:
 ## Prerequisites
 
 - Node.js (v18+ recommended)
-- (Optional) Gemini API key for AI extraction: set `GEMINI_API_KEY` in `.env.local`
+- API key for at least one AI service (see AI Service Configuration below)
+
+## AI Service Configuration
+
+BillScan supports multiple AI services for bill/receipt extraction. Configure which service to use by setting the `AI_SERVICE` environment variable in your `.env.local` file.
+
+### Supported Services
+
+1. **Gemini** (default) - Google's Gemini AI
+   ```env
+   AI_SERVICE=gemini
+   GEMINI_API_KEY=your_gemini_key_here
+   ```
+
+2. **OpenAI** - GPT-4 Vision or GPT-4o
+   ```env
+   AI_SERVICE=openai
+   OPENAI_API_KEY=your_openai_key_here
+   OPENAI_MODEL=gpt-4o-mini  # Optional, defaults to gpt-4o-mini
+   ```
+
+3. **Claude** - Anthropic's Claude with vision
+   ```env
+   AI_SERVICE=claude
+   ANTHROPIC_API_KEY=your_anthropic_key_here
+   ANTHROPIC_MODEL=claude-3-5-sonnet-20241022  # Optional
+   ```
+
+4. **Ollama** - Local AI models
+   ```env
+   AI_SERVICE=ollama
+   OLLAMA_HOST=http://localhost:11434  # Optional, defaults to localhost:11434
+   OLLAMA_MODEL=gemma3  # Optional, defaults to gemma3
+   ```
+
+If `AI_SERVICE` is not set, the application defaults to `gemini` for backward compatibility.
 
 ## Setup & Run (Frontend)
 
@@ -22,9 +57,25 @@ From the project root:
    ```cmd
    npm install
    ```
-2. Set the `GEMINI_API_KEY` in `.env.local` (create the file if missing):
+2. Configure your AI service in `.env.local` (create the file if missing):
    ```env
+   # Choose your AI service
+   AI_SERVICE=gemini  # or openai, claude, ollama
+   
+   # For Gemini (default):
    GEMINI_API_KEY=your_key_here
+   
+   # For OpenAI:
+   # OPENAI_API_KEY=your_key_here
+   # OPENAI_MODEL=gpt-4o-mini
+   
+   # For Claude:
+   # ANTHROPIC_API_KEY=your_key_here
+   # ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
+   
+   # For Ollama (local):
+   # OLLAMA_HOST=http://localhost:11434
+   # OLLAMA_MODEL=gemma3
    ```
 3. Start the dev server:
    ```cmd
@@ -73,7 +124,22 @@ Base URL: `http://localhost:3000`
 1. Run backend (`server/`) on port 3000.
 2. Run frontend dev server.
 3. Frontend calls REST API under `/api/bills` for persistence.
-4. AI services invoked via configured API key (`GEMINI_API_KEY`).
+4. AI service is selected based on the `AI_SERVICE` environment variable and invoked with the configured API key.
+
+## Architecture
+
+### AI Service Abstraction
+
+The application uses a pluggable AI service architecture:
+
+- **Interface**: `IAIService` defines the contract for all AI services
+- **Implementations**: 
+  - `geminiService.ts` - Google Gemini
+  - `openaiService.ts` - OpenAI GPT-4o
+  - `claudeService.ts` - Anthropic Claude
+  - `ollamaService.ts` - Local Ollama models
+- **Factory**: `aiService.ts` - Dynamically loads the configured service
+- **Benefits**: Easy to add new AI providers, switch between services, and test different models
 
 ## Troubleshooting
 
