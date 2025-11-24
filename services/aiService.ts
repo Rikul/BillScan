@@ -24,9 +24,10 @@ export const getAIService = async (): Promise<IAIService> => {
       const { claudeService } = await import('./claudeService');
       return claudeService;
     default:
-      console.warn(`Unknown AI service type: ${serviceType}. Falling back to gemini.`);
-      const { geminiService: defaultService } = await import('./geminiService');
-      return defaultService;
+      // Invalid service type - throw error to fail fast
+      throw new Error(
+        `Invalid AI_SERVICE value: "${serviceType}". Valid options are: gemini, ollama, openai, claude`
+      );
   }
 };
 

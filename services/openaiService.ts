@@ -57,7 +57,8 @@ Return the data in valid JSON format with this exact structure:
       const data = JSON.parse(content) as BillData;
       
       // Validate required fields
-      if (!data.storeName || data.total === undefined || !data.lineItems) {
+      if (!data.storeName || !data.date || data.subtotal === undefined || 
+          data.tax === undefined || data.total === undefined || !data.lineItems) {
         throw new Error("Missing required fields in response");
       }
       

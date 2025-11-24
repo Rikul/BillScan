@@ -32,19 +32,6 @@ export default defineConfig(({ mode }) => {
           '@': path.resolve(__dirname, '.'),
           'ollama': path.resolve(__dirname, 'node_modules/ollama/dist/browser.mjs'),
         }
-      },
-      build: {
-        rollupOptions: {
-          output: {
-            manualChunks: (id) => {
-              // Only bundle the ollama service if it's actually used
-              // This prevents bundling issues with Node.js modules
-              if (id.includes('ollama') && env.AI_SERVICE !== 'ollama') {
-                return undefined;
-              }
-            }
-          }
-        }
       }
     };
 });

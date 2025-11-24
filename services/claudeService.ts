@@ -62,7 +62,8 @@ Return ONLY valid JSON with this exact structure (no markdown, no additional tex
       const data = JSON.parse(content.text) as BillData;
       
       // Validate required fields
-      if (!data.storeName || data.total === undefined || !data.lineItems) {
+      if (!data.storeName || !data.date || data.subtotal === undefined || 
+          data.tax === undefined || data.total === undefined || !data.lineItems) {
         throw new Error("Missing required fields in response");
       }
       
