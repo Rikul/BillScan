@@ -11,18 +11,22 @@ export const getAIService = async (): Promise<IAIService> => {
   const serviceType = (process.env.AI_SERVICE || 'gemini') as AIServiceType;
   
   switch (serviceType) {
-    case 'gemini':
-      const { geminiService } = await import('./geminiService');
-      return geminiService;
-    case 'ollama':
-      const { ollamaService } = await import('./ollamaService');
-      return ollamaService;
-    case 'openai':
-      const { openaiService } = await import('./openaiService');
-      return openaiService;
-    case 'claude':
-      const { claudeService } = await import('./claudeService');
-      return claudeService;
+    case 'gemini': {
+      const { geminiService: service } = await import('./geminiService');
+      return service;
+    }
+    case 'ollama': {
+      const { ollamaService: service } = await import('./ollamaService');
+      return service;
+    }
+    case 'openai': {
+      const { openaiService: service } = await import('./openaiService');
+      return service;
+    }
+    case 'claude': {
+      const { claudeService: service } = await import('./claudeService');
+      return service;
+    }
     default:
       // Invalid service type - throw error to fail fast
       throw new Error(
