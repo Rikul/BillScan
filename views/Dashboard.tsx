@@ -10,6 +10,8 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [bills, setBills] = useState<BillRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const billsPerPage = 10;
 
   useEffect(() => {
     async function fetchBills() {
@@ -23,6 +25,34 @@ const Dashboard: React.FC = () => {
     b.storeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     b.date.includes(searchTerm)
   );
+
+  const groupedBills = filteredBills.reduce((acc, bill) => {
+    const month = new Date(bill.date).toLocaleString('default', { month: 'long', year: 'numeric' });
+    if (!acc[month]) {
+      acc[month] = [];
+    }
+    acc[month].push(bill);
+    return acc;
+  }, {} as Record<string, BillRecord[]>);
+
+  const paginatedBills = Object.entries(groupedBills).flatMap(([month, billsInMonth]) => {
+    return billsInMonth.map(bill => ({ ...bill, month }));
+  });
+
+  const indexOfLastBill = currentPage * billsPerPage;
+  const indexOfFirstBill = indexOfLastBill - billsPerPage;
+  const currentBills = paginatedBills.slice(indexOfFirstBill, indexOfLastBill);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  const billsToRender = currentBills.reduce((acc, bill) => {
+    const month = bill.month;
+    if (!acc[month]) {
+      acc[month] = [];
+    }
+    acc[month].push(bill);
+    return acc;
+  }, {} as Record<string, BillRecord[]>);
 
   const totalSpent = bills.reduce((acc, curr) => acc + (curr.total || 0), 0);
   const lastMonthTotal = bills.reduce((acc, curr) => {
@@ -43,30 +73,30 @@ const Dashboard: React.FC = () => {
       <div className="px-6 max-w-7xl mx-auto space-y-8">
         {/* Stats Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="p-8 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white border-none shadow-lg relative overflow-hidden">
+            <Card className="p-4 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white border-none shadow-lg relative overflow-hidden">
             <div className="relative z-10">
-                <div className="flex items-center gap-4 mb-4">
-                    <div className="p-3 bg-white/10 rounded-xl backdrop-blur-sm">
-                    <TrendingUp className="w-8 h-8 text-indigo-100" />
+                <div className="flex items-center gap-4 mb-2">
+                    <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
+                    <TrendingUp className="w-6 h-6 text-indigo-100" />
                     </div>
                     <div>
-                    <p className="text-indigo-200 text-sm font-medium uppercase tracking-wider">Total Tracked</p>
-                    <h2 className="text-4xl font-bold tracking-tight mt-1">{formatCurrency(totalSpent)}</h2>
+                    <p className="text-indigo-200 text-xs font-medium uppercase tracking-wider">Total Tracked</p>
+                    <h2 className="text-2xl font-bold tracking-tight mt-1">{formatCurrency(totalSpent)}</h2>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 text-indigo-100 text-sm bg-white/10 p-2 px-3 rounded-lg w-fit backdrop-blur-sm">
-                    <Calendar className="w-4 h-4" />
+                <div className="flex items-center gap-2 text-indigo-100 text-xs bg-white/10 p-1 px-2 rounded-md w-fit backdrop-blur-sm mt-2">
+                    <Calendar className="w-3 h-3" />
                     <span>Last 30 days: {formatCurrency(lastMonthTotal)}</span>
                 </div>
             </div>
             <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-1/4 translate-y-1/4">
-                <Receipt className="w-64 h-64 text-white" />
+                <Receipt className="w-32 h-32 text-white" />
             </div>
             </Card>
 
-            <div className="hidden md:flex flex-col justify-center p-8 bg-white rounded-xl border border-gray-200 shadow-sm">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Quick Actions</h3>
-                <p className="text-gray-500 mb-6">Manage your expenses efficiently. Upload receipts to track spending automatically.</p>
+            <div className="hidden md:flex flex-col justify-center p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
+                <h3 className="text-lg font-bold text-gray-900 mb-1">Quick Actions</h3>
+                <p className="text-gray-500 text-sm mb-3">Manage your expenses efficiently.</p>
                 <div className="flex gap-4">
                      <Button onClick={() => navigate('/upload')} className="flex-1">
                         <Plus className="w-5 h-5 mr-2" /> Upload Receipt
@@ -102,7 +132,7 @@ const Dashboard: React.FC = () => {
             <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{filteredBills.length} found</span>
           </div>
 
-          {filteredBills.length === 0 ? (
+          {paginatedBills.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
               <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Receipt className="w-8 h-8 text-gray-300" />
@@ -111,40 +141,54 @@ const Dashboard: React.FC = () => {
               <p className="text-sm text-gray-400 mt-1">Upload your first receipt to get started</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredBills.map((bill) => (
-                <Card
-                  key={bill.id}
-                  onClick={() => navigate(`/bill/${bill.id}`)}
-                  className="p-4 flex flex-col gap-4 hover:bg-gray-50 transition-all hover:-translate-y-1 duration-200 group"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden relative border border-gray-200">
-                        {bill.imageData ? (
+            <div className="space-y-4">
+              {Object.entries(billsToRender).map(([month, billsInMonth]) => (
+                <div key={month}>
+                  <h4 className="text-sm font-medium text-gray-500 mb-2 px-2">{month}</h4>
+                  <div className="space-y-2">
+                    {billsInMonth.map((bill) => (
+                      <Card
+                        key={bill.id}
+                        onClick={() => navigate(`/bill/${bill.id}`)}
+                        className="p-3 flex items-center gap-4 hover:bg-gray-50 transition-all duration-200 group"
+                      >
+                        <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden relative border border-gray-200">
+                          {bill.imageData ? (
                             <img src={bill.imageData} alt={bill.storeName} className="w-full h-full object-cover" />
-                        ) : (
-                            <Receipt className="w-6 h-6 text-gray-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                        )}
+                          ) : (
+                            <Receipt className="w-8 h-8 text-gray-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                          )}
                         </div>
-                        <div>
-                            <h4 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{bill.storeName}</h4>
-                            <p className="text-xs text-gray-500">{formatDate(bill.date)}</p>
+                        <div className="flex-grow">
+                          <h4 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{bill.storeName}</h4>
+                          <p className="text-sm text-gray-500">{formatDate(bill.date)}</p>
                         </div>
-                    </div>
-                    <div className="text-right">
-                        <span className="font-bold text-gray-900 block text-lg">{formatCurrency(bill.total, bill.currency)}</span>
-                    </div>
+                        <div className="text-right">
+                          <span className="font-bold text-gray-900 block text-lg">{formatCurrency(bill.total, bill.currency)}</span>
+                          <span className="text-xs text-gray-500 group-hover:translate-x-1 transition-transform inline-block">View Details &rarr;</span>
+                        </div>
+                      </Card>
+                    ))}
                   </div>
-
-                  <div className="pt-3 mt-auto border-t border-gray-100 flex justify-between items-center text-xs text-gray-500">
-                      <span>{bill.lineItems?.length || 0} items</span>
-                      <span className="group-hover:translate-x-1 transition-transform">View Details &rarr;</span>
-                  </div>
-                </Card>
+                </div>
               ))}
             </div>
           )}
+
+          {/* Pagination */}
+          <div className="flex justify-center mt-8">
+            <nav className="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+              {Array.from({ length: Math.ceil(paginatedBills.length / billsPerPage) }, (_, i) => i + 1).map(number => (
+                <button
+                  key={number}
+                  onClick={() => paginate(number)}
+                  className={`relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium hover:bg-gray-50 ${currentPage === number ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600' : 'text-gray-500'}`}
+                >
+                  {number}
+                </button>
+              ))}
+            </nav>
+          </div>
         </div>
       </div>
 
