@@ -132,7 +132,7 @@ const Dashboard: React.FC = () => {
             <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{filteredBills.length} found</span>
           </div>
 
-          {paginatedBills.length === 0 ? (
+          {filteredBills.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
               <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Receipt className="w-8 h-8 text-gray-300" />
