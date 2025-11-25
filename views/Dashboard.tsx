@@ -35,25 +35,53 @@ const Dashboard: React.FC = () => {
     return acc;
   }, {} as Record<string, BillRecord[]>);
 
-  const paginatedBills = Object.entries(groupedBills).flatMap(([month, billsInMonth]) => {
-    return billsInMonth.map(bill => ({ ...bill, month }));
-  });
+  // Convert groupedBills to an array of { month, bills } objects, sorted by month descending
+  const monthGroups = Object.entries(groupedBills)
+    .sort((a, b) => {
+      // Sort by date descending
+      const dateA = new Date(a[1][0].date);
+      const dateB = new Date(b[1][0].date);
+      return dateB.getTime() - dateA.getTime();
+    })
+    .map(([month, bills]) => ({ month, bills }));
 
-  const indexOfLastBill = currentPage * billsPerPage;
-  const indexOfFirstBill = indexOfLastBill - billsPerPage;
-  const currentBills = paginatedBills.slice(indexOfFirstBill, indexOfLastBill);
+  // Paginate month groups: each page contains whole months, up to billsPerPage bills per page
+  const paginatedMonthGroups: { month: string, bills: BillRecord[] }[] = [];
+  let count = 0;
+  let pageStart = (currentPage - 1) * billsPerPage;
+  let pageEnd = currentPage * billsPerPage;
+  let currentCount = 0;
+  for (let i = 0; i < monthGroups.length; i++) {
+    const group = monthGroups[i];
+    if (currentCount + group.bills.length > billsPerPage && currentCount > 0) {
+      break;
+    }
+    paginatedMonthGroups.push(group);
+    currentCount += group.bills.length;
+  }
+
+  // For pagination controls, calculate total pages
+  // Each page contains whole months, so we need to split monthGroups into pages
+  const pages: { month: string, bills: BillRecord[] }[][] = [];
+  let temp: { month: string, bills: BillRecord[] }[] = [];
+  let tempCount = 0;
+  for (let i = 0; i < monthGroups.length; i++) {
+    const group = monthGroups[i];
+    if (tempCount + group.bills.length > billsPerPage && tempCount > 0) {
+      pages.push(temp);
+      temp = [];
+      tempCount = 0;
+    }
+    temp.push(group);
+    tempCount += group.bills.length;
+  }
+  if (temp.length > 0) {
+    pages.push(temp);
+  }
+  const totalPages = pages.length;
+  const billsToRender = pages[currentPage - 1] || [];
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-
-  const billsToRender = currentBills.reduce((acc, bill) => {
-    const month = bill.month;
-    if (!acc[month]) {
-      acc[month] = [];
-    }
-    acc[month].push(bill);
-    return acc;
-  }, {} as Record<string, BillRecord[]>);
-
   const totalSpent = bills.reduce((acc, curr) => acc + (curr.total || 0), 0);
   const lastMonthTotal = bills.reduce((acc, curr) => {
     // Simple last 30 days approximation
