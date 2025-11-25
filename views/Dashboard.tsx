@@ -176,19 +176,21 @@ const Dashboard: React.FC = () => {
           )}
 
           {/* Pagination */}
-          <div className="flex justify-center mt-8">
-            <nav className="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-              {Array.from({ length: Math.ceil(paginatedBills.length / billsPerPage) }, (_, i) => i + 1).map(number => (
-                <button
-                  key={number}
-                  onClick={() => paginate(number)}
-                  className={`relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium hover:bg-gray-50 ${currentPage === number ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600' : 'text-gray-500'}`}
-                >
-                  {number}
-                </button>
-              ))}
-            </nav>
-          </div>
+          {Math.ceil(paginatedBills.length / billsPerPage) > 1 && (
+            <div className="flex justify-center mt-8">
+              <nav className="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                {Array.from({ length: Math.ceil(paginatedBills.length / billsPerPage) }, (_, i) => i + 1).map(number => (
+                  <button
+                    key={number}
+                    onClick={() => paginate(number)}
+                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium hover:bg-gray-50 ${currentPage === number ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600' : 'text-gray-500'}`}
+                  >
+                    {number}
+                  </button>
+                ))}
+              </nav>
+            </div>
+          )}
         </div>
       </div>
 
