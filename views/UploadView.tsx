@@ -15,6 +15,7 @@ const UploadView: React.FC = () => {
   const [recordId, setRecordId] = useState<string | null>(null);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -45,7 +46,7 @@ const UploadView: React.FC = () => {
           lineItems: []
         };
         // We need the image even if analysis failed to initialize the record
-        if (image) initializeRecord(emptyData, image);
+        if (resizedImage) initializeRecord(emptyData, resizedImage);
       } finally {
         setIsAnalyzing(false);
       }
@@ -59,24 +60,29 @@ const UploadView: React.FC = () => {
     setData(initialData);
     setRecordId(newId);
     setCreatedAt(created);
+  };
 
-    // Autosave immediately
+  const handleSave = async () => {
+    if (!data || !recordId || !image || !createdAt) return;
+
+    setSaveError(null);
     try {
       await saveBill({
-        ...initialData,
-        id: newId,
-        imageData: imgData,
-        createdAt: created,
+        ...data,
+        id: recordId,
+        imageData: image,
+        createdAt: createdAt,
       });
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
     } catch (e) {
       console.error("Failed to save bill", e);
+      setSaveError("Failed to save. Please try again.");
     }
   };
 
   const updateField = (field: keyof BillData, value: any) => {
-    if (!data || !recordId || !image || !createdAt) return;
+    if (!data) return;
 
     let newData = { ...data, [field]: value };
 
@@ -89,14 +95,6 @@ const UploadView: React.FC = () => {
     }
 
     setData(newData);
-
-    // Autosave on change
-    saveBill({
-      ...newData,
-      id: recordId,
-      imageData: image,
-      createdAt: createdAt,
-    }).catch(err => console.error("Autosave failed", err));
   };
 
   const handleBack = () => navigate('/');
@@ -163,8 +161,8 @@ const UploadView: React.FC = () => {
         onBack={handleBack}
         action={
         <div className="text-sm text-gray-500">
-          <Button onClick={handleBack} variant="primary">
-             {isSaved ? <span className="flex items-center"><Check className="w-4 h-4 mr-1"/> Saved</span> : "Done"}
+          <Button onClick={handleSave} variant="primary">
+             {isSaved ? <span className="flex items-center"><Check className="w-4 h-4 mr-1"/> Saved</span> : "Save"}
           </Button>
           <Button onClick={handleUploadAnother} variant="secondary" className="ml-3">
                 Upload Next Receipt
@@ -188,10 +186,16 @@ const UploadView: React.FC = () => {
                     </button>
                 </div>
                 </div>
-                 {error && (
+                {error && (
                     <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
                         <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-amber-800">{error}</p>
+                    </div>
+                )}
+                 {saveError && (
+                    <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-red-800">{saveError}</p>
                     </div>
                 )}
             </div>
@@ -203,7 +207,6 @@ const UploadView: React.FC = () => {
                     <Card className="p-6 space-y-5 shadow-md">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-bold text-gray-900">Receipt Details</h3>
-                            <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded">Autosave On</span>
                         </div>
 
                         <div>
