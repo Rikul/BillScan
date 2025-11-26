@@ -129,13 +129,12 @@ const Dashboard: React.FC = () => {
                      <Button onClick={() => navigate('/upload')} className="flex-1">
                         <Plus className="w-5 h-5 mr-2" /> Upload Receipt
                      </Button>
-                     <div className="flex-1 relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                     <div className="flex-1 relative bo">
                         <Input
                             placeholder="Search history..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10"
+                            className="pl-10 p-1 border border-gray-300 rounded-md"
                         />
                      </div>
                 </div>
@@ -170,7 +169,7 @@ const Dashboard: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {Object.entries(billsToRender).map(([month, billsInMonth]) => (
+              {billsToRender.map(({ month, bills: billsInMonth }) => (
                 <div key={month}>
                   <h4 className="text-sm font-medium text-gray-500 mb-2 px-2">{month}</h4>
                   <div className="space-y-2">
@@ -204,10 +203,10 @@ const Dashboard: React.FC = () => {
           )}
 
           {/* Pagination */}
-          {Math.ceil(paginatedBills.length / billsPerPage) > 1 && (
+          {totalPages > 1 && (
             <div className="flex justify-center mt-8">
               <nav className="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                {Array.from({ length: Math.ceil(paginatedBills.length / billsPerPage) }, (_, i) => i + 1).map(number => (
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(number => (
                   <button
                     key={number}
                     onClick={() => paginate(number)}
