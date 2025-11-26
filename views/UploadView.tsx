@@ -17,6 +17,7 @@ const UploadView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
+  const [hasInitialSave, setHasInitialSave] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,6 +75,7 @@ const UploadView: React.FC = () => {
         imageData: image,
         createdAt: createdAt,
       });
+      setHasInitialSave(true);
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
     } catch (e) {
@@ -166,13 +168,20 @@ const UploadView: React.FC = () => {
         title="Verify Details"
         onBack={handleBack}
         action={
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-gray-500 flex gap-2">
+          {hasInitialSave && (
+            <Button onClick={handleBack} variant="secondary">
+              Done
+            </Button>
+          )}
           <Button onClick={handleSave} variant="primary">
-             {isSaved ? <span className="flex items-center"><Check className="w-4 h-4 mr-1"/> Saved</span> : "Save"}
+             {isSaved ? <span className="flex items-center"><Check className="w-4 h-4 mr-1"/> {hasInitialSave ? "Updated" : "Saved"}</span> : (hasInitialSave ? "Update" : "Save")}
           </Button>
-          <Button onClick={handleUploadAnother} variant="secondary" className="ml-3">
-                Upload Next Receipt
-          </Button>
+          {hasInitialSave && (
+            <Button onClick={handleUploadAnother} variant="secondary" className="ml-3">
+                  Upload Next Receipt
+            </Button>
+          )}
         </div>
         }
       />
