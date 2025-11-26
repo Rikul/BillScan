@@ -1,0 +1,42 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - GEMINI_API_KEY=${GEMINI_API_KEY}
+        - OPENAI_API_KEY=${OPENAI_API_KEY}
+        - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+        - OLLAMA_HOST=${OLLAMA_HOST}
+        - OLLAMA_MODEL=${OLLAMA_MODEL}
+        - OPENAI_MODEL=${OPENAI_MODEL}
+        - ANTHROPIC_MODEL=${ANTHROPIC_MODEL}
+        - AI_SERVICE=${AI_SERVICE}
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    volumes:
+      - billscan-data:/data
+    environment:
+      - NODE_ENV=production
+      - DATA_DIR=/data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/bills"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  billscan-data:

@@ -11,7 +11,8 @@ BillScan consists of two parts:
 
 ## Prerequisites
 
-- Node.js (v18+ recommended)
+- Node.js (v18+ recommended) - for local development
+- Docker and Docker Compose - for containerized deployment
 - API key for at least one AI service (see AI Service Configuration below)
 
 ## AI Service Configuration
@@ -48,6 +49,40 @@ BillScan supports multiple AI services for bill/receipt extraction. Configure wh
    ```
 
 If `AI_SERVICE` is not set, the application defaults to `gemini` for backward compatibility.
+
+## Quick Start with Docker
+
+The easiest way to run BillScan is with Docker Compose:
+
+1. Create a `.env` file in the project root with your API keys:
+   ```bash
+   # .env file
+   GEMINI_API_KEY=your_key_here
+   AI_SERVICE=gemini
+   # Add other keys as needed (see AI Service Configuration above)
+   ```
+
+2. Build and start the containers:
+   ```bash
+   docker compose up --build
+   ```
+
+3. Access the application:
+   - Frontend: http://localhost:8080
+   - Backend API: http://localhost:8080/api (proxied through frontend)
+
+4. To stop the containers:
+   ```bash
+   docker compose down
+   ```
+
+**Note:** The SQLite database is persisted in a Docker volume (`billscan-data`), so your data will be preserved across container restarts.
+
+### Docker Architecture
+
+- **Frontend**: Multi-stage build using Node.js for building and nginx:alpine for serving (~30MB final image)
+- **Backend**: Node.js Alpine image running Express server (~150MB)
+- **Data Persistence**: SQLite database stored in a named Docker volume
 
 ## Setup & Run (Frontend)
 
@@ -146,3 +181,10 @@ The application uses a pluggable AI service architecture:
 - If the server fails to start, ensure port 3000 is free.
 - Delete `server/bills.db` to reset stored data (schema recreated automatically).
 - Large image uploads: body size limit set to `50mb`; adjust in `server/index.js` if needed.
+
+### Docker Troubleshooting
+
+- If Docker build fails, ensure you have Docker and Docker Compose installed.
+- To reset Docker data: `docker compose down -v` (removes volumes and data).
+- View container logs: `docker compose logs -f`
+- Rebuild containers after code changes: `docker compose up --build`
