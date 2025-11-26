@@ -1,24 +1,8 @@
 import { BillRecord, IStorageService } from "../types";
-import { LocalStorageService } from "./localStorageService";
-import { SqliteStorageService } from "./sqliteStorageService";
 import { ApiStorageService } from "./apiStorageService";
 
-// Select backend via Vite env variable; default to 'local'.
-const backendType = (import.meta as any).env?.VITE_STORAGE_BACKEND || "api"; // Changed default to api
-
-let service: IStorageService;
-switch (backendType) {
-  case "api":
-    service = new ApiStorageService();
-    break;
-  case "sqlite":
-    service = new SqliteStorageService();
-    break;
-  case "local":
-  default:
-    service = new LocalStorageService();
-    break;
-}
+// Currently using API storage service
+let service: IStorageService = new ApiStorageService();
 
 // Facade re-exporting functions.
 // We are transitioning to Async, so we return the service method results directly (Promises)
