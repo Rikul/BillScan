@@ -6,8 +6,10 @@ let dbInstance = null;
 
 async function getDb() {
   if (!dbInstance) {
+    // Use DATA_DIR environment variable if set, otherwise use current directory
+    const dataDir = process.env.DATA_DIR || __dirname;
     dbInstance = await open({
-      filename: path.join(__dirname, 'bills.db'),
+      filename: path.join(dataDir, 'bills.db'),
       driver: sqlite3.Database
     });
 
