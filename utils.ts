@@ -9,7 +9,7 @@ export const resizeImage = (file: File, maxWidth = 1500): Promise<string> => {
       img.onload = () => {
         const elem = document.createElement('canvas');
         const scaleFactor = maxWidth / img.width;
-        
+
         // Only resize if larger than maxWidth
         if (scaleFactor < 1) {
           elem.width = maxWidth;
@@ -18,7 +18,7 @@ export const resizeImage = (file: File, maxWidth = 1500): Promise<string> => {
           elem.width = img.width;
           elem.height = img.height;
         }
-        
+
         const ctx = elem.getContext('2d');
         ctx?.drawImage(img, 0, 0, elem.width, elem.height);
         resolve(ctx?.canvas.toDataURL('image/jpeg', 1) || '');
@@ -39,12 +39,27 @@ export const formatCurrency = (amount: number, currency = 'USD') => {
 export const formatDate = (dateString: string) => {
   if (!dateString) return 'N/A';
   try {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    // Parse YYYY-MM-DD as local date components to avoid UTC shifts
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
   } catch (e) {
     return dateString;
+  }
+};
+
+export const getMonthYearFromDateString = (dateString: string) => {
+  if (!dateString) return 'Unknown';
+  try {
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+  } catch (e) {
+    return 'Unknown';
   }
 };
