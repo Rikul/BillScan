@@ -15,6 +15,12 @@ COPY . .
 # Create data directory for SQLite database persistence
 RUN mkdir -p /data
 
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+RUN chown -R nodejs:nodejs /app /data
+
+# Switch to non-root user
+USER nodejs
 # Expose port 3000
 EXPOSE 3000
 
