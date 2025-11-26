@@ -54,16 +54,24 @@ If `AI_SERVICE` is not set, the application defaults to `gemini` for backward co
 
 The easiest way to run BillScan is with Docker Compose:
 
-1. Build and start the containers:
+1. Create a `.env` file in the project root with your API keys:
+   ```bash
+   # .env file
+   GEMINI_API_KEY=your_key_here
+   AI_SERVICE=gemini
+   # Add other keys as needed (see AI Service Configuration above)
+   ```
+
+2. Build and start the containers:
    ```bash
    docker compose up --build
    ```
 
-2. Access the application:
+3. Access the application:
    - Frontend: http://localhost:8080
    - Backend API: http://localhost:8080/api (proxied through frontend)
 
-3. To stop the containers:
+4. To stop the containers:
    ```bash
    docker compose down
    ```
