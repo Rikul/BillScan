@@ -22,12 +22,13 @@ const UploadView: React.FC = () => {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      let resizedImage: string | null = null;
       try {
         setIsAnalyzing(true);
         setError(null);
 
         // Resize first to save localstorage space and speed up upload
-        const resizedImage = await resizeImage(file);
+        resizedImage = await resizeImage(file);
         setImage(resizedImage);
 
         // Process with configured AI service
@@ -37,7 +38,7 @@ const UploadView: React.FC = () => {
         console.error(err);
         setError("Could not analyze receipt. Please try again or enter details manually.");
         // If analysis fails, we still let user enter manual data
-        const emptyData = {
+        const emptyData: BillData = {
           storeName: "",
           date: new Date().toISOString().split('T')[0],
           total: 0,
@@ -86,10 +87,15 @@ const UploadView: React.FC = () => {
 
     let newData = { ...data, [field]: value };
 
+    // Convert numeric fields from string to number
+    if (field === 'subtotal' || field === 'tax' || field === 'total') {
+        newData[field] = parseFloat(value) || 0;
+    }
+
     // Auto-calculate Total if Subtotal or Tax changes
     if (field === 'subtotal' || field === 'tax') {
-        const sub = field === 'subtotal' ? (parseFloat(value) || 0) : (data.subtotal || 0);
-        const tax = field === 'tax' ? (parseFloat(value) || 0) : (data.tax || 0);
+        const sub = field === 'subtotal' ? newData.subtotal : data.subtotal;
+        const tax = field === 'tax' ? newData.tax : data.tax;
         // Round to 2 decimal places to avoid float math issues
         newData.total = Math.round((sub + tax) * 100) / 100;
     }
@@ -266,7 +272,7 @@ const UploadView: React.FC = () => {
                             type="number"
                             step="0.01"
                             value={data.total}
-                            onChange={(e) => updateField('total', parseFloat(e.target.value) || 0)}
+                            onChange={(e) => updateField('total', e.target.value)}
                             className="font-bold text-lg text-indigo-600"
                             />
                         </div>

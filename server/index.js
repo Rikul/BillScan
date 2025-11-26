@@ -58,7 +58,7 @@ app.post('/api/bills', async (req, res) => {
     isNaN(bill.tax) ||
     isNaN(bill.total)
   ) {
-    return res.status(400).json({ error: 'Invalid numeric fields' });
+    return res.status(400).json({ error: 'Invalid numeric fields', subtotal: bill.subtotal, tax: bill.tax, total: bill.total });
   }
   // Validate required fields
   if (!bill.storeName || !bill.date || !bill.currency) {
