@@ -61,7 +61,7 @@ The easiest way to run BillScan is with Docker Compose:
 
 2. Access the application:
    - Frontend: http://localhost:8080
-   - Backend API: http://localhost:3000
+   - Backend API: http://localhost:8080/api (proxied through frontend)
 
 3. To stop the containers:
    ```bash
