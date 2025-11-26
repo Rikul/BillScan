@@ -48,7 +48,7 @@ BillScan supports multiple AI services for bill/receipt extraction. Configure wh
    OLLAMA_MODEL=gemma3  # Optional, defaults to gemma3
    ```
 
-If `AI_SERVICE` is not set, the application defaults to `gemini` for backward compatibility.
+If `AI_SERVICE` is not set, the application defaults to `gemini`
 
 ## Quick Start with Docker
 
@@ -75,14 +75,6 @@ The easiest way to run BillScan is with Docker Compose:
    ```bash
    docker compose down
    ```
-
-**Note:** The SQLite database is persisted in a Docker volume (`billscan-data`), so your data will be preserved across container restarts.
-
-### Docker Architecture
-
-- **Frontend**: Multi-stage build using Node.js for building and nginx:alpine for serving (~30MB final image)
-- **Backend**: Node.js Alpine image running Express server (~150MB)
-- **Data Persistence**: SQLite database stored in a named Docker volume
 
 ## Setup & Run (Frontend)
 
@@ -142,45 +134,6 @@ Then run:
 npm start
 ```
 
-## REST API Endpoints
-
-Base URL: `http://localhost:3000`
-
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET | `/api/bills` | List all bills (ordered by date desc). |
-| GET | `/api/bills/:id` | Fetch a single bill by ID. |
-| POST | `/api/bills` | Create or update a bill (upsert). Requires `id`, `storeName`, `date`, `subtotal`, `tax`, `total`, `currency`. Optional: `imageData`, `createdAt`, `lineItems` (array). |
-| DELETE | `/api/bills/:id` | Delete a bill by ID. |
-
-
-## Development Workflow
-
-1. Run backend (`server/`) on port 3000.
-2. Run frontend dev server.
-3. Frontend calls REST API under `/api/bills` for persistence.
-4. AI service is selected based on the `AI_SERVICE` environment variable and invoked with the configured API key.
-
-## Architecture
-
-### AI Service Abstraction
-
-The application uses a pluggable AI service architecture:
-
-- **Interface**: `IAIService` defines the contract for all AI services
-- **Implementations**: 
-  - `geminiService.ts` - Google Gemini
-  - `openaiService.ts` - OpenAI GPT-4o
-  - `claudeService.ts` - Anthropic Claude
-  - `ollamaService.ts` - Local Ollama models
-- **Factory**: `aiService.ts` - Dynamically loads the configured service
-- **Benefits**: Easy to add new AI providers, switch between services, and test different models
-
-## Troubleshooting
-
-- If the server fails to start, ensure port 3000 is free.
-- Delete `server/bills.db` to reset stored data (schema recreated automatically).
-- Large image uploads: body size limit set to `50mb`; adjust in `server/index.js` if needed.
 
 ### Docker Troubleshooting
 
