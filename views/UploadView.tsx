@@ -76,6 +76,8 @@ const UploadView: React.FC = () => {
     if (!data || !recordId || !image || !createdAt) return;
 
     setSaveError(null);
+    let uploadedImagePath: string | null = null;
+    
     try {
       // First, upload the image to get a URL
       const uploadResponse = await fetch('/api/upload-image', {
@@ -86,14 +88,15 @@ const UploadView: React.FC = () => {
       if (!uploadResponse.ok) {
         throw new Error('Image upload failed');
       }
-      const { imagePath } = await uploadResponse.json();
-      setImagePath(imagePath);
+      const uploadResult = await uploadResponse.json();
+      uploadedImagePath = uploadResult.imagePath;
+      setImagePath(uploadedImagePath);
 
       // Then, save the bill with the image path
       await saveBill({
         ...data,
         id: recordId,
-        imagePath: imagePath,
+        imagePath: uploadedImagePath,
         createdAt: createdAt,
       });
 
@@ -102,6 +105,17 @@ const UploadView: React.FC = () => {
       setTimeout(() => setIsSaved(false), 2000);
     } catch (e) {
       console.error("Failed to save bill", e);
+      
+      // If image was uploaded but saveBill failed, clean up the orphaned image
+      if (uploadedImagePath) {
+        try {
+          await fetch(`/api/delete-image/${recordId}`, { method: 'DELETE' });
+          setImagePath(null);
+        } catch (cleanupError) {
+          console.error("Failed to clean up orphaned image", cleanupError);
+        }
+      }
+      
       setSaveError("Failed to save. Please try again.");
     }
   };
@@ -184,6 +198,9 @@ const UploadView: React.FC = () => {
     );
   }
 
+  // Compute the image source to display - prefer server path over base64
+  const imageSource = imagePath || image;
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20 animate-fade-in">
       <Header
@@ -213,10 +230,10 @@ const UploadView: React.FC = () => {
             {/* Image Preview - Left Side on Desktop */}
             <div className="md:w-1/2 md:h-[calc(100vh-120px)] md:sticky md:top-24">
                 <div className="relative h-64 md:h-full rounded-xl overflow-hidden bg-gray-900 shadow-inner group border border-gray-200">
-                <img src={imagePath ? imagePath : image} alt="Receipt" className="w-full h-full object-contain bg-gray-900/50" />
+                <img src={imageSource} alt="Receipt" className="w-full h-full object-contain bg-gray-900/50" />
                 <div className="absolute bottom-3 right-3">
                     <button
-                        onClick={() => window.open(imagePath ? imagePath : image, '_blank')}
+                        onClick={() => window.open(imageSource, '_blank')}
                         className="bg-black/50 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm hover:bg-black/70"
                     >
                         View Full Image
