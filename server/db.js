@@ -13,14 +13,6 @@ function isBase64Image(value) {
   return value.startsWith('data:image/');
 }
 
-/**
- * Check if a string looks like a file path (server path).
- */
-function isImagePath(value) {
-  if (!value || typeof value !== 'string') return false;
-  return value.startsWith('/receipts-images/') || value.startsWith('receipts-images/');
-}
-
 async function getDb() {
   if (!dbInstance) {
     // Use DATA_DIR environment variable if set, otherwise use current directory
@@ -48,4 +40,4 @@ async function getDb() {
   return dbInstance;
 }
 
-module.exports = { getDb, isBase64Image, isImagePath };
+module.exports = { getDb, isBase64Image };

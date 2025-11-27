@@ -12,6 +12,7 @@ const UploadView: React.FC = () => {
   const [image, setImage] = useState<string | null>(null);
   const [imagePath, setImagePath] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [data, setData] = useState<BillData | null>(null);
   const [recordId, setRecordId] = useState<string | null>(null);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
@@ -73,9 +74,10 @@ const UploadView: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!data || !recordId || !image || !createdAt) return;
+    if (!data || !recordId || !image || !createdAt || isSaving) return;
 
     setSaveError(null);
+    setIsSaving(true);
     let uploadedImagePath: string | null = null;
     
     try {
@@ -86,7 +88,8 @@ const UploadView: React.FC = () => {
         body: JSON.stringify({ billId: recordId, imageData: image }),
       });
       if (!uploadResponse.ok) {
-        throw new Error('Image upload failed');
+        const errorData = await uploadResponse.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(`Image upload failed: ${errorData.error || uploadResponse.statusText}`);
       }
       const uploadResult = await uploadResponse.json();
       uploadedImagePath = uploadResult.imagePath;
@@ -117,6 +120,8 @@ const UploadView: React.FC = () => {
       }
       
       setSaveError("Failed to save. Please try again.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -213,8 +218,8 @@ const UploadView: React.FC = () => {
               Done
             </Button>
           )}
-          <Button onClick={handleSave} variant="primary">
-             {isSaved ? <span className="flex items-center"><Check className="w-4 h-4 mr-1"/> {hasInitialSave ? "Updated" : "Saved"}</span> : (hasInitialSave ? "Update" : "Save")}
+          <Button onClick={handleSave} variant="primary" disabled={isSaving}>
+             {isSaving ? "Saving..." : isSaved ? <span className="flex items-center"><Check className="w-4 h-4 mr-1"/> {hasInitialSave ? "Updated" : "Saved"}</span> : (hasInitialSave ? "Update" : "Save")}
           </Button>
           {hasInitialSave && (
             <Button onClick={handleUploadAnother} variant="secondary" className="ml-3">
