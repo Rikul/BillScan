@@ -4,6 +4,23 @@ const path = require('path');
 
 let dbInstance = null;
 
+/**
+ * Check if a string looks like a base64-encoded image data URL.
+ * Used for backward compatibility with old records that stored base64 images.
+ */
+function isBase64Image(value) {
+  if (!value || typeof value !== 'string') return false;
+  return value.startsWith('data:image/');
+}
+
+/**
+ * Check if a string looks like a file path (server path).
+ */
+function isImagePath(value) {
+  if (!value || typeof value !== 'string') return false;
+  return value.startsWith('/receipts-images/') || value.startsWith('receipts-images/');
+}
+
 async function getDb() {
   if (!dbInstance) {
     // Use DATA_DIR environment variable if set, otherwise use current directory
@@ -31,4 +48,4 @@ async function getDb() {
   return dbInstance;
 }
 
-module.exports = { getDb };
+module.exports = { getDb, isBase64Image, isImagePath };
