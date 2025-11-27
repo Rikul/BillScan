@@ -57,8 +57,9 @@ app.post('/api/upload-image', async (req, res) => {
     }
 
     // Check for existing files and remove them to prevent orphaned files
-    const existingFiles = fs.readdirSync(imagesDir).filter(f => f.startsWith(billId + '.'));
-    existingFiles.forEach(f => fs.unlinkSync(path.join(imagesDir, f)));
+    const allFiles = await fs.promises.readdir(imagesDir);
+    const existingFiles = allFiles.filter(f => f.startsWith(billId + '.'));
+    await Promise.all(existingFiles.map(f => fs.promises.unlink(path.join(imagesDir, f))));
 
     const imageName = `${billId}.${extension}`;
     const imagePath = path.join(imagesDir, imageName);
@@ -190,14 +191,15 @@ app.delete('/api/bills/:id', async (req, res) => {
     const billId = req.params.id;
     
     // Delete associated image files
-    const existingFiles = fs.readdirSync(imagesDir).filter(f => f.startsWith(billId + '.'));
-    existingFiles.forEach(f => {
+    const allFiles = await fs.promises.readdir(imagesDir);
+    const existingFiles = allFiles.filter(f => f.startsWith(billId + '.'));
+    await Promise.all(existingFiles.map(async f => {
       try {
-        fs.unlinkSync(path.join(imagesDir, f));
+        await fs.promises.unlink(path.join(imagesDir, f));
       } catch (e) {
         console.error('Error deleting image file:', e);
       }
-    });
+    }));
     
     await db.run('DELETE FROM bills WHERE id = ?', billId);
     res.json({ success: true });
@@ -217,8 +219,9 @@ app.delete('/api/delete-image/:billId', async (req, res) => {
   }
   
   try {
-    const existingFiles = fs.readdirSync(imagesDir).filter(f => f.startsWith(billId + '.'));
-    existingFiles.forEach(f => fs.unlinkSync(path.join(imagesDir, f)));
+    const allFiles = await fs.promises.readdir(imagesDir);
+    const existingFiles = allFiles.filter(f => f.startsWith(billId + '.'));
+    await Promise.all(existingFiles.map(f => fs.promises.unlink(path.join(imagesDir, f))));
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting image:', err);
