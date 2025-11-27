@@ -1,6 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 const { getDb } = require('./db');
 
 const app = express();
@@ -9,6 +11,39 @@ const PORT = 3000;
 // Increase limit for image uploads
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(cors());
+
+// Serve receipt images statically
+const imagesDir = path.join(__dirname, 'receipts-images');
+if (!fs.existsSync(imagesDir)) {
+  fs.mkdirSync(imagesDir);
+}
+app.use('/receipts-images', express.static(imagesDir));
+
+// POST /api/upload-image - Upload an image
+app.post('/api/upload-image', (req, res) => {
+  const { billId, imageData } = req.body;
+  if (!billId || !imageData) {
+    return res.status(400).json({ error: 'Bill ID and image data are required' });
+  }
+
+  try {
+    const matches = imageData.match(/^data:image\/(\w+);base64,/);
+    const extension = matches ? matches[1] : 'jpeg';
+    const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+    const imageBuffer = Buffer.from(base64Data, 'base64');
+
+    const imageName = `${billId}.${extension}`;
+    const imagePath = path.join(imagesDir, imageName);
+
+    fs.writeFileSync(imagePath, imageBuffer);
+
+    const imageUrl = `/receipts-images/${imageName}`;
+    res.json({ success: true, imagePath: imageUrl });
+  } catch (err) {
+    console.error('Error saving image:', err);
+    res.status(500).json({ error: 'Failed to save image' });
+  }
+});
 
 // GET /api/bills - Fetch all bills
 app.get('/api/bills', async (req, res) => {
@@ -76,21 +111,21 @@ app.post('/api/bills', async (req, res) => {
       await db.run(
         `UPDATE bills SET
          storeName = ?, date = ?, subtotal = ?, tax = ?, total = ?,
-         currency = ?, imageData = ?, createdAt = ?, lineItems = ?
+         currency = ?, imagePath = ?, createdAt = ?, lineItems = ?
          WHERE id = ?`,
         [
           bill.storeName, bill.date, bill.subtotal, bill.tax, bill.total,
-          bill.currency, bill.imageData, bill.createdAt, lineItemsStr,
+          bill.currency, bill.imagePath, bill.createdAt, lineItemsStr,
           bill.id
         ]
       );
     } else {
       await db.run(
-        `INSERT INTO bills (id, storeName, date, subtotal, tax, total, currency, imageData, createdAt, lineItems)
+        `INSERT INTO bills (id, storeName, date, subtotal, tax, total, currency, imagePath, createdAt, lineItems)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           bill.id, bill.storeName, bill.date, bill.subtotal, bill.tax, bill.total,
-          bill.currency, bill.imageData, bill.createdAt, lineItemsStr
+          bill.currency, bill.imagePath, bill.createdAt, lineItemsStr
         ]
       );
     }

@@ -22,7 +22,7 @@ async function getDb() {
         tax REAL,
         total REAL,
         currency TEXT,
-        imageData TEXT,
+        imagePath TEXT,
         createdAt TEXT,
         lineItems TEXT
       )

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, Check, AlertCircle, ScanLine } from "lucide-react";
 import { extractBillData } from "../services/aiService";
@@ -10,6 +10,7 @@ import { Button, Card, Header, Input, Label } from "../components/UI";
 const UploadView: React.FC = () => {
   const navigate = useNavigate();
   const [image, setImage] = useState<string | null>(null);
+  const [imagePath, setImagePath] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [data, setData] = useState<BillData | null>(null);
   const [recordId, setRecordId] = useState<string | null>(null);
@@ -19,6 +20,13 @@ const UploadView: React.FC = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [hasInitialSave, setHasInitialSave] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // When a new image is loaded, clear the saved imagePath
+    if (image) {
+      setImagePath(null);
+    }
+  }, [image]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -69,12 +77,26 @@ const UploadView: React.FC = () => {
 
     setSaveError(null);
     try {
+      // First, upload the image to get a URL
+      const uploadResponse = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ billId: recordId, imageData: image }),
+      });
+      if (!uploadResponse.ok) {
+        throw new Error('Image upload failed');
+      }
+      const { imagePath } = await uploadResponse.json();
+      setImagePath(imagePath);
+
+      // Then, save the bill with the image path
       await saveBill({
         ...data,
         id: recordId,
-        imageData: image,
+        imagePath: imagePath,
         createdAt: createdAt,
       });
+
       setHasInitialSave(true);
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
@@ -191,10 +213,10 @@ const UploadView: React.FC = () => {
             {/* Image Preview - Left Side on Desktop */}
             <div className="md:w-1/2 md:h-[calc(100vh-120px)] md:sticky md:top-24">
                 <div className="relative h-64 md:h-full rounded-xl overflow-hidden bg-gray-900 shadow-inner group border border-gray-200">
-                <img src={image} alt="Receipt" className="w-full h-full object-contain bg-gray-900/50" />
+                <img src={imagePath ? imagePath : image} alt="Receipt" className="w-full h-full object-contain bg-gray-900/50" />
                 <div className="absolute bottom-3 right-3">
                     <button
-                        onClick={() => window.open(image, '_blank')}
+                        onClick={() => window.open(imagePath ? imagePath : image, '_blank')}
                         className="bg-black/50 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm hover:bg-black/70"
                     >
                         View Full Image
