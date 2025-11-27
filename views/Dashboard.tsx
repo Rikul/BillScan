@@ -185,8 +185,8 @@ const Dashboard: React.FC = () => {
                         className="p-3 flex items-center gap-4 hover:bg-gray-50 transition-all duration-200 group"
                       >
                         <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden relative border border-gray-200">
-                          {bill.imageData ? (
-                            <img src={bill.imageData} alt={bill.storeName} className="w-full h-full object-cover" />
+                          {bill.imagePath || bill.imageData ? (
+                            <img src={bill.imagePath || bill.imageData} alt={bill.storeName} className="w-full h-full object-cover" />
                           ) : (
                             <Receipt className="w-8 h-8 text-gray-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                           )}

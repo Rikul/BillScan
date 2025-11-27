@@ -16,7 +16,8 @@ export interface BillData {
 
 export interface BillRecord extends BillData {
   id: string;
-  imageData: string; // Base64 string
+  imagePath: string;
+  imageData?: string; // For backward compatibility with old base64-stored records
   createdAt: string; // ISO Timestamp
 }
 

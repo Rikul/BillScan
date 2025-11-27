@@ -48,8 +48,8 @@ const DetailsView: React.FC = () => {
             {/* Receipt Image Column */}
             <div className="md:w-1/2">
                 <Card className="overflow-hidden sticky top-24">
-                    <div className="aspect-[4/3] md:aspect-auto md:h-[calc(100vh-150px)] relative bg-gray-100 cursor-pointer group" onClick={() => window.open(bill.imageData, '_blank')}>
-                        <img src={bill.imageData} alt={bill.storeName} className="w-full h-full object-contain bg-gray-900/5" />
+                    <div className="aspect-[4/3] md:aspect-auto md:h-[calc(100vh-150px)] relative bg-gray-100 cursor-pointer group" onClick={() => window.open(bill.imagePath || bill.imageData, '_blank')}>
+                        <img src={bill.imagePath || bill.imageData} alt={bill.storeName} className="w-full h-full object-contain bg-gray-900/5" />
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
                             <span className="opacity-0 group-hover:opacity-100 text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-full transition-opacity backdrop-blur-sm">
                                 Click to zoom

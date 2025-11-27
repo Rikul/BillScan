@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, Check, AlertCircle, ScanLine } from "lucide-react";
 import { extractBillData } from "../services/aiService";
@@ -10,7 +10,9 @@ import { Button, Card, Header, Input, Label } from "../components/UI";
 const UploadView: React.FC = () => {
   const navigate = useNavigate();
   const [image, setImage] = useState<string | null>(null);
+  const [imagePath, setImagePath] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [data, setData] = useState<BillData | null>(null);
   const [recordId, setRecordId] = useState<string | null>(null);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
@@ -19,6 +21,13 @@ const UploadView: React.FC = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [hasInitialSave, setHasInitialSave] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // When a new image is loaded, clear the saved imagePath
+    if (image) {
+      setImagePath(null);
+    }
+  }, [image]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -65,22 +74,54 @@ const UploadView: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!data || !recordId || !image || !createdAt) return;
+    if (!data || !recordId || !image || !createdAt || isSaving) return;
 
     setSaveError(null);
+    setIsSaving(true);
+    let uploadedImagePath: string | null = null;
+    
     try {
+      // First, upload the image to get a URL
+      const uploadResponse = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ billId: recordId, imageData: image }),
+      });
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(`Image upload failed: ${errorData.error || uploadResponse.statusText}`);
+      }
+      const uploadResult = await uploadResponse.json();
+      uploadedImagePath = uploadResult.imagePath;
+      setImagePath(uploadedImagePath);
+
+      // Then, save the bill with the image path
       await saveBill({
         ...data,
         id: recordId,
-        imageData: image,
+        imagePath: uploadedImagePath,
         createdAt: createdAt,
       });
+
       setHasInitialSave(true);
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
     } catch (e) {
       console.error("Failed to save bill", e);
+      
+      // If image was uploaded but saveBill failed, clean up the orphaned image
+      if (uploadedImagePath) {
+        try {
+          await fetch(`/api/delete-image/${recordId}`, { method: 'DELETE' });
+          setImagePath(null);
+        } catch (cleanupError) {
+          console.error("Failed to clean up orphaned image", cleanupError);
+        }
+      }
+      
       setSaveError("Failed to save. Please try again.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -162,6 +203,9 @@ const UploadView: React.FC = () => {
     );
   }
 
+  // Compute the image source to display - prefer server path over base64
+  const imageSource = imagePath || image;
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20 animate-fade-in">
       <Header
@@ -174,8 +218,8 @@ const UploadView: React.FC = () => {
               Done
             </Button>
           )}
-          <Button onClick={handleSave} variant="primary">
-             {isSaved ? <span className="flex items-center"><Check className="w-4 h-4 mr-1"/> {hasInitialSave ? "Updated" : "Saved"}</span> : (hasInitialSave ? "Update" : "Save")}
+          <Button onClick={handleSave} variant="primary" disabled={isSaving}>
+             {isSaving ? "Saving..." : isSaved ? <span className="flex items-center"><Check className="w-4 h-4 mr-1"/> {hasInitialSave ? "Updated" : "Saved"}</span> : (hasInitialSave ? "Update" : "Save")}
           </Button>
           {hasInitialSave && (
             <Button onClick={handleUploadAnother} variant="secondary" className="ml-3">
@@ -191,10 +235,10 @@ const UploadView: React.FC = () => {
             {/* Image Preview - Left Side on Desktop */}
             <div className="md:w-1/2 md:h-[calc(100vh-120px)] md:sticky md:top-24">
                 <div className="relative h-64 md:h-full rounded-xl overflow-hidden bg-gray-900 shadow-inner group border border-gray-200">
-                <img src={image} alt="Receipt" className="w-full h-full object-contain bg-gray-900/50" />
+                <img src={imageSource} alt="Receipt" className="w-full h-full object-contain bg-gray-900/50" />
                 <div className="absolute bottom-3 right-3">
                     <button
-                        onClick={() => window.open(image, '_blank')}
+                        onClick={() => window.open(imageSource, '_blank')}
                         className="bg-black/50 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm hover:bg-black/70"
                     >
                         View Full Image
