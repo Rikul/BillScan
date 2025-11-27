@@ -1,17 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Receipt, TrendingUp, Calendar, DollarSign } from "lucide-react";
+import { Plus, Search, Receipt, TrendingUp, Calendar, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { BillRecord } from "../types";
 import { getBills } from "../services/storageService";
 import { Button, Card, Header, Input } from "../components/UI";
-import { formatCurrency, formatDate, getMonthYearFromDateString } from "../utils";
+import { formatCurrency, formatDate } from "../utils";
+
+type SortField = 'date' | 'storeName' | 'total' | 'tax' | 'subtotal';
+type SortDirection = 'asc' | 'desc';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [bills, setBills] = useState<BillRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const billsPerPage = 10;
+  const [sortField, setSortField] = useState<SortField>('date');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const billsPerPage = 20;
 
   useEffect(() => {
     async function fetchBills() {
@@ -26,69 +31,70 @@ const Dashboard: React.FC = () => {
     b.date.includes(searchTerm)
   );
 
-  const groupedBills = filteredBills.reduce((acc, bill) => {
-    const month = getMonthYearFromDateString(bill.date);
-    if (!acc[month]) {
-      acc[month] = [];
-    }
-    acc[month].push(bill);
-    return acc;
-  }, {} as Record<string, BillRecord[]>);
+  // Sorting logic
+  const sortedBills = [...filteredBills].sort((a, b) => {
+    let aValue: any;
+    let bValue: any;
 
-  // Convert groupedBills to an array of { month, bills } objects, sorted by month descending
-  const monthGroups = Object.entries(groupedBills)
-    .sort((a, b) => {
-      // Sort by date descending
-      // Use the first bill's date to determine the month's date
-      // Parse manually to avoid UTC shifts
-      const [yearA, monthA, dayA] = a[1][0].date.split('-').map(Number);
-      const [yearB, monthB, dayB] = b[1][0].date.split('-').map(Number);
-      const dateA = new Date(yearA, monthA - 1, dayA);
-      const dateB = new Date(yearB, monthB - 1, dayB);
-      return dateB.getTime() - dateA.getTime();
-    })
-    .map(([month, bills]) => ({ month, bills }));
-
-  // Paginate month groups: each page contains whole months, up to billsPerPage bills per page
-  const paginatedMonthGroups: { month: string, bills: BillRecord[] }[] = [];
-  let count = 0;
-  let pageStart = (currentPage - 1) * billsPerPage;
-  let pageEnd = currentPage * billsPerPage;
-  let currentCount = 0;
-  for (let i = 0; i < monthGroups.length; i++) {
-    const group = monthGroups[i];
-    if (currentCount + group.bills.length > billsPerPage && currentCount > 0) {
-      break;
+    switch (sortField) {
+      case 'date':
+        const [yearA, monthA, dayA] = a.date.split('-').map(Number);
+        const [yearB, monthB, dayB] = b.date.split('-').map(Number);
+        aValue = new Date(yearA, monthA - 1, dayA).getTime();
+        bValue = new Date(yearB, monthB - 1, dayB).getTime();
+        break;
+      case 'storeName':
+        aValue = a.storeName.toLowerCase();
+        bValue = b.storeName.toLowerCase();
+        break;
+      case 'total':
+        aValue = a.total || 0;
+        bValue = b.total || 0;
+        break;
+      case 'tax':
+        aValue = a.tax || 0;
+        bValue = b.tax || 0;
+        break;
+      case 'subtotal':
+        aValue = a.subtotal || 0;
+        bValue = b.subtotal || 0;
+        break;
     }
-    paginatedMonthGroups.push(group);
-    currentCount += group.bills.length;
-  }
 
-  // For pagination controls, calculate total pages
-  // Each page contains whole months, so we need to split monthGroups into pages
-  const pages: { month: string, bills: BillRecord[] }[][] = [];
-  let temp: { month: string, bills: BillRecord[] }[] = [];
-  let tempCount = 0;
-  for (let i = 0; i < monthGroups.length; i++) {
-    const group = monthGroups[i];
-    if (tempCount + group.bills.length > billsPerPage && tempCount > 0) {
-      pages.push(temp);
-      temp = [];
-      tempCount = 0;
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  // Pagination
+  const indexOfLastBill = currentPage * billsPerPage;
+  const indexOfFirstBill = indexOfLastBill - billsPerPage;
+  const currentBills = sortedBills.slice(indexOfFirstBill, indexOfLastBill);
+  const totalPages = Math.ceil(sortedBills.length / billsPerPage);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
     }
-    temp.push(group);
-    tempCount += group.bills.length;
-  }
-  if (temp.length > 0) {
-    pages.push(temp);
-  }
-  const totalPages = pages.length;
-  const billsToRender = pages[currentPage - 1] || [];
+    setCurrentPage(1); // Reset to first page when sorting
+  };
+
+  const renderSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
+    }
+    return sortDirection === 'asc' ? 
+      <ArrowUp className="w-4 h-4 text-indigo-600" /> : 
+      <ArrowDown className="w-4 h-4 text-indigo-600" />;
+  };
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+  
   const totalSpent = bills.reduce((acc, curr) => acc + (curr.total || 0), 0);
   const lastMonthTotal = bills.reduce((acc, curr) => {
-    // Simple last 30 days approximation
     const [year, month, day] = curr.date.split('-').map(Number);
     const date = new Date(year, month - 1, day);
     const now = new Date();
@@ -99,9 +105,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen pb-24 bg-gray-50 animate-fade-in">
-      <Header
-        title="BillScan"
-      />
+      <Header title="BillScan" />
 
       <div className="px-6 max-w-7xl mx-auto space-y-8">
         {/* Stats Section */}
@@ -134,20 +138,12 @@ const Dashboard: React.FC = () => {
               <Button onClick={() => navigate('/upload')} className="flex-1">
                 <Plus className="w-5 h-5 mr-2" /> Upload Receipt
               </Button>
-              <div className="flex-1 relative bo">
-                <Input
-                  placeholder="Search history..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 p-1 border border-gray-300 rounded-md"
-                />
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Search for Mobile */}
-        <div className="relative md:hidden">
+        {/* Search */}
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
             placeholder="Search stores or dates..."
@@ -157,14 +153,16 @@ const Dashboard: React.FC = () => {
           />
         </div>
 
-        {/* Recent Bills List */}
+        {/* Bills Table */}
         <div className="space-y-4">
           <div className="flex items-center justify-between border-b border-gray-200 pb-2">
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Recent Bills</h3>
-            <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{filteredBills.length} found</span>
+            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Bills History</h3>
+            <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+              {sortedBills.length} found
+            </span>
           </div>
 
-          {filteredBills.length === 0 ? (
+          {sortedBills.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
               <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Receipt className="w-8 h-8 text-gray-300" />
@@ -173,55 +171,195 @@ const Dashboard: React.FC = () => {
               <p className="text-sm text-gray-400 mt-1">Upload your first receipt to get started</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {billsToRender.map(({ month, bills: billsInMonth }) => (
-                <div key={month}>
-                  <h4 className="text-sm font-medium text-gray-500 mb-2 px-2">{month}</h4>
-                  <div className="space-y-2">
-                    {billsInMonth.map((bill) => (
-                      <Card
-                        key={bill.id}
-                        onClick={() => navigate(`/bill/${bill.id}`)}
-                        className="p-3 flex items-center gap-4 hover:bg-gray-50 transition-all duration-200 group"
-                      >
-                        <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden relative border border-gray-200">
-                          {bill.imagePath || bill.imageData ? (
-                            <img src={bill.imagePath || bill.imageData} alt={bill.storeName} className="w-full h-full object-cover" />
-                          ) : (
-                            <Receipt className="w-8 h-8 text-gray-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                          )}
-                        </div>
-                        <div className="flex-grow">
-                          <h4 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{bill.storeName}</h4>
-                          <p className="text-sm text-gray-500">{formatDate(bill.date)}</p>
-                        </div>
-                        <div className="text-right">
-                          <span className="font-bold text-gray-900 block text-lg">{formatCurrency(bill.total, bill.currency)}</span>
-                          <span className="text-xs text-gray-500 group-hover:translate-x-1 transition-transform inline-block">View Details &rarr;</span>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Picture
+                        </th>
+                        <th 
+                          className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={() => handleSort('date')}
+                        >
+                          <div className="flex items-center gap-2">
+                            Date
+                            {renderSortIcon('date')}
+                          </div>
+                        </th>
+                        <th 
+                          className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={() => handleSort('storeName')}
+                        >
+                          <div className="flex items-center gap-2">
+                            Store
+                            {renderSortIcon('storeName')}
+                          </div>
+                        </th>
+                        <th 
+                          className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={() => handleSort('subtotal')}
+                        >
+                          <div className="flex items-center justify-end gap-2">
+                            Subtotal
+                            {renderSortIcon('subtotal')}
+                          </div>
+                        </th>
+                        <th 
+                          className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={() => handleSort('tax')}
+                        >
+                          <div className="flex items-center justify-end gap-2">
+                            Tax
+                            {renderSortIcon('tax')}
+                          </div>
+                        </th>
+                        <th 
+                          className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={() => handleSort('total')}
+                        >
+                          <div className="flex items-center justify-end gap-2">
+                            Total
+                            {renderSortIcon('total')}
+                          </div>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {currentBills.map((bill) => (
+                        <tr 
+                          key={bill.id}
+                          onClick={() => navigate(`/bill/${bill.id}`)}
+                          className="hover:bg-gray-50 cursor-pointer transition-colors"
+                        >
+                          <td className="px-4 py-3">
+                            <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200">
+                              {bill.imagePath || bill.imageData ? (
+                                <img 
+                                  src={bill.imagePath || bill.imageData} 
+                                  alt={bill.storeName} 
+                                  className="w-full h-full object-cover" 
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Receipt className="w-6 h-6 text-gray-400" />
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {formatDate(bill.date)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="font-medium text-gray-900">{bill.storeName}</span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-right text-gray-900">
+                            {formatCurrency(bill.subtotal, bill.currency)}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-right text-gray-900">
+                            {formatCurrency(bill.tax, bill.currency)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="font-bold text-gray-900">
+                              {formatCurrency(bill.total, bill.currency)}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-8">
-              <nav className="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(number => (
-                  <button
-                    key={number}
-                    onClick={() => paginate(number)}
-                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium hover:bg-gray-50 ${currentPage === number ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600' : 'text-gray-500'}`}
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-2">
+                {currentBills.map((bill) => (
+                  <Card
+                    key={bill.id}
+                    onClick={() => navigate(`/bill/${bill.id}`)}
+                    className="p-3 flex items-center gap-4 hover:bg-gray-50 transition-all duration-200"
                   >
-                    {number}
-                  </button>
+                    <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200">
+                      {bill.imagePath || bill.imageData ? (
+                        <img 
+                          src={bill.imagePath || bill.imageData} 
+                          alt={bill.storeName} 
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Receipt className="w-6 h-6 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-grow">
+                      <h4 className="font-bold text-gray-900">{bill.storeName}</h4>
+                      <p className="text-sm text-gray-500">{formatDate(bill.date)}</p>
+                      <div className="flex gap-3 mt-1 text-xs text-gray-600">
+                        <span>Subtotal: {formatCurrency(bill.subtotal, bill.currency)}</span>
+                        <span>Tax: {formatCurrency(bill.tax, bill.currency)}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-gray-900 block text-lg">
+                        {formatCurrency(bill.total, bill.currency)}
+                      </span>
+                    </div>
+                  </Card>
                 ))}
-              </nav>
-            </div>
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                  <div className="text-sm text-gray-600">
+                    Showing {indexOfFirstBill + 1} to {Math.min(indexOfLastBill, sortedBills.length)} of {sortedBills.length} bills
+                  </div>
+                  <nav className="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <button
+                      onClick={() => paginate(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => paginate(pageNum)}
+                          className={`relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium hover:bg-gray-50 ${
+                            currentPage === pageNum ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600' : 'text-gray-700'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                    <button
+                      onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </nav>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

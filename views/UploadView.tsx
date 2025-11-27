@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Camera, Check, AlertCircle, ScanLine } from "lucide-react";
 import { extractBillData } from "../services/aiService";
 import { saveBill } from "../services/storageService";
-import { resizeImage, formatCurrency } from "../utils";
+import { resizeImage, formatCurrency, generateUUID } from "../utils";
 import { BillData } from "../types";
 import { Button, Card, Header, Input, Label } from "../components/UI";
 
@@ -65,7 +65,7 @@ const UploadView: React.FC = () => {
   };
 
   const initializeRecord = async (initialData: BillData, imgData: string) => {
-    const newId = crypto.randomUUID();
+    const newId = generateUUID();
     const created = new Date().toISOString();
 
     setData(initialData);
