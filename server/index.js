@@ -19,8 +19,8 @@ if (!fs.existsSync(imagesDir)) {
 }
 app.use('/receipts-images', express.static(imagesDir));
 
-// Allowed image extensions whitelist
-const ALLOWED_EXTENSIONS = ['jpeg', 'jpg', 'png', 'gif', 'webp'];
+// Allowed image extensions whitelist (normalized form only)
+const ALLOWED_EXTENSIONS = ['jpeg', 'png', 'gif', 'webp'];
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB max file size
 
 // POST /api/upload-image - Upload an image
@@ -40,12 +40,12 @@ app.post('/api/upload-image', async (req, res) => {
     const matches = imageData.match(/^data:image\/([a-z0-9\-\+]+);base64,/i);
     let extension = matches ? matches[1].toLowerCase() : 'jpeg';
     
-    // Normalize jpeg variations
+    // Normalize jpeg variations before validation
     if (extension === 'jpg') extension = 'jpeg';
     
     // Validate extension against whitelist
     if (!ALLOWED_EXTENSIONS.includes(extension)) {
-      return res.status(400).json({ error: 'Invalid image format. Allowed formats: ' + ALLOWED_EXTENSIONS.join(', ') });
+      return res.status(400).json({ error: 'Invalid image format. Allowed formats: jpeg, png, gif, webp' });
     }
 
     const base64Data = imageData.replace(/^data:image\/[a-z0-9\-\+]+;base64,/i, '');
@@ -56,10 +56,15 @@ app.post('/api/upload-image', async (req, res) => {
       return res.status(400).json({ error: 'Image size exceeds maximum allowed size of 10MB' });
     }
 
-    // Check for existing files and remove them to prevent orphaned files
-    const allFiles = await fs.promises.readdir(imagesDir);
-    const existingFiles = allFiles.filter(f => f.startsWith(billId + '.'));
-    await Promise.all(existingFiles.map(f => fs.promises.unlink(path.join(imagesDir, f))));
+    // Remove any existing images for this billId with allowed extensions
+    await Promise.all(ALLOWED_EXTENSIONS.map(async ext => {
+      const filePath = path.join(imagesDir, `${billId}.${ext}`);
+      try {
+        await fs.promises.unlink(filePath);
+      } catch (e) {
+        if (e.code !== 'ENOENT') throw e;
+      }
+    }));
 
     const imageName = `${billId}.${extension}`;
     const imagePath = path.join(imagesDir, imageName);
@@ -190,14 +195,15 @@ app.delete('/api/bills/:id', async (req, res) => {
     const db = await getDb();
     const billId = req.params.id;
     
-    // Delete associated image files
-    const allFiles = await fs.promises.readdir(imagesDir);
-    const existingFiles = allFiles.filter(f => f.startsWith(billId + '.'));
-    await Promise.all(existingFiles.map(async f => {
+    // Delete associated image files using targeted approach
+    await Promise.all(ALLOWED_EXTENSIONS.map(async ext => {
+      const filePath = path.join(imagesDir, `${billId}.${ext}`);
       try {
-        await fs.promises.unlink(path.join(imagesDir, f));
+        await fs.promises.unlink(filePath);
       } catch (e) {
-        console.error('Error deleting image file:', e);
+        if (e.code !== 'ENOENT') {
+          console.error('Error deleting image file:', e);
+        }
       }
     }));
     
@@ -219,9 +225,23 @@ app.delete('/api/delete-image/:billId', async (req, res) => {
   }
   
   try {
-    const allFiles = await fs.promises.readdir(imagesDir);
-    const existingFiles = allFiles.filter(f => f.startsWith(billId + '.'));
-    await Promise.all(existingFiles.map(f => fs.promises.unlink(path.join(imagesDir, f))));
+    const db = await getDb();
+    
+    // Security: Verify that no bill exists with this ID before allowing deletion
+    const bill = await db.get('SELECT id FROM bills WHERE id = ?', billId);
+    if (bill) {
+      return res.status(403).json({ error: 'Cannot delete image for existing bill' });
+    }
+    
+    // Delete orphaned image files using targeted approach
+    await Promise.all(ALLOWED_EXTENSIONS.map(async ext => {
+      const filePath = path.join(imagesDir, `${billId}.${ext}`);
+      try {
+        await fs.promises.unlink(filePath);
+      } catch (e) {
+        if (e.code !== 'ENOENT') throw e;
+      }
+    }));
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting image:', err);
