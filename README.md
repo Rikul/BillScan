@@ -6,8 +6,28 @@ Use a MultiModal AI workflow to scan a receipt or bill, extract structured data,
 
 BillScan consists of two parts:
 
-1. Frontend (Vite + TypeScript) for uploading images, viewing extracted bill data, and interacting with AI services.
-2. Express + SQLite backend (`server/`) providing REST endpoints to store and retrieve bills.
+1. **Frontend** (`frontend/`) - Vite + React + TypeScript for uploading images, viewing extracted bill data, and interacting with AI services.
+2. **Backend** (`backend/`) - Express + SQLite providing REST endpoints to store and retrieve bills.
+
+## Project Structure
+
+```
+BillScan/
+├── frontend/           # React frontend application
+│   ├── components/     # Reusable UI components
+│   ├── services/       # AI and storage service integrations
+│   ├── views/          # Page components
+│   ├── Dockerfile      # Frontend Docker build
+│   └── ...
+├── backend/            # Express backend API
+│   ├── index.js        # Server entry point
+│   ├── db.js           # SQLite database setup
+│   ├── Dockerfile      # Backend Docker build
+│   └── ...
+├── docker-compose.yml  # Docker orchestration
+├── LICENSE
+└── README.md
+```
 
 ## Prerequisites
 
@@ -78,10 +98,11 @@ The easiest way to run BillScan is with Docker Compose:
 
 ## Setup & Run (Frontend)
 
-From the project root:
+From the `frontend/` directory:
 
 1. Install dependencies:
    ```cmd
+   cd frontend
    npm install
    ```
 2. Configure your AI service in `.env.local` (create the file if missing):
@@ -108,15 +129,15 @@ From the project root:
    ```cmd
    npm run dev
    ```
-4. Open the printed local URL (typically `http://localhost:5173`).
+4. Open the printed local URL (typically `http://localhost:3001`).
 
-## Setup & Run (Express Server)
+## Setup & Run (Backend)
 
-The backend lives in `server/` and uses an on-disk SQLite database `bills.db` created automatically.
+The backend lives in `backend/` and uses an on-disk SQLite database `bills.db` created automatically.
 
-1. Install server dependencies:
+1. Install backend dependencies:
    ```cmd
-   cd server
+   cd backend
    npm install
    ```
 2. Start the server (port 3000 by default):
@@ -125,7 +146,7 @@ The backend lives in `server/` and uses an on-disk SQLite database `bills.db` cr
    ```
    You should see: `Server running on http://localhost:3000`.
 
-If you prefer, add a script to `server/package.json`:
+If you prefer, add a script to `backend/package.json`:
 ```json
 "scripts": { "start": "node index.js" }
 ```
