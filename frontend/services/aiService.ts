@@ -1,44 +1,47 @@
-import { IAIService, AIServiceType } from "../types";
+import { BillData } from "../types";
+
+const API_URL = '/api';
 
 /**
- * Factory function to get the appropriate AI service based on configuration
- * Service type is determined by the AI_SERVICE environment variable
- * Defaults to 'gemini' for backward compatibility
- * 
- * Uses dynamic imports to avoid bundling unused services
+ * Validates that the response data has the required BillData fields
  */
-export const getAIService = async (): Promise<IAIService> => {
-  const serviceType = (process.env.AI_SERVICE || 'gemini') as AIServiceType;
-  
-  switch (serviceType) {
-    case 'gemini': {
-      const { geminiService: service } = await import('./geminiService');
-      return service;
-    }
-    case 'ollama': {
-      const { ollamaService: service } = await import('./ollamaService');
-      return service;
-    }
-    case 'openai': {
-      const { openaiService: service } = await import('./openaiService');
-      return service;
-    }
-    case 'claude': {
-      const { claudeService: service } = await import('./claudeService');
-      return service;
-    }
-    default:
-      // Invalid service type - throw error to fail fast
-      throw new Error(
-        `Invalid AI_SERVICE value: "${serviceType}". Valid options are: gemini, ollama, openai, claude`
-      );
-  }
+const isValidBillData = (data: unknown): data is BillData => {
+  if (!data || typeof data !== 'object') return false;
+  const bill = data as Record<string, unknown>;
+  return (
+    typeof bill.storeName === 'string' &&
+    typeof bill.date === 'string' &&
+    typeof bill.total === 'number' &&
+    Array.isArray(bill.lineItems)
+  );
 };
 
 /**
- * Convenience function to extract bill data using the configured AI service
+ * Extract bill data from an image using the backend API
  */
-export const extractBillData = async (base64Image: string) => {
-  const service = await getAIService();
-  return service.extractBillData(base64Image);
+export const extractBillData = async (base64Image: string): Promise<BillData> => {
+  const response = await fetch(`${API_URL}/extract-bill`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ imageData: base64Image }),
+  });
+  
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(errorData.error || `Failed to extract bill data: ${response.statusText}`);
+    }
+    throw new Error(`Failed to extract bill data: ${response.statusText}`);
+  }
+  
+  const data = await response.json();
+  
+  if (!isValidBillData(data)) {
+    throw new Error('Invalid response format from server');
+  }
+  
+  return data;
 };

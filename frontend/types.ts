@@ -29,10 +29,3 @@ export interface IStorageService {
   deleteBill(id: string): Promise<void> | void;
 }
 
-// Generic AI service interface to enable pluggable AI providers
-export interface IAIService {
-  extractBillData(base64Image: string): Promise<BillData>;
-}
-
-// Supported AI service types
-export type AIServiceType = 'gemini' | 'ollama' | 'openai' | 'claude';
