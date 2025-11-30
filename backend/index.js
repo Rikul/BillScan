@@ -8,6 +8,9 @@ const { extractBillData } = require('./services/aiService');
 const app = express();
 const PORT = 3000;
 
+// Load the .env config file
+require('dotenv').config();
+
 // Increase limit for image uploads
 app.use(express.json({ limit: '50mb' }));
 app.use(cors());
@@ -25,6 +28,8 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB max file size
 
 // POST /api/upload-image - Upload an image
 app.post('/api/upload-image', async (req, res) => {
+    console.log('Received upload-image request');
+
   const { billId, imageData } = req.body;
   if (!billId || !imageData) {
     return res.status(400).json({ error: 'Bill ID and image data are required' });
@@ -82,6 +87,7 @@ app.post('/api/upload-image', async (req, res) => {
 
 // POST /api/extract-bill - Extract bill data from an image using AI
 app.post('/api/extract-bill', async (req, res) => {
+    console.log('Received extract-bill request');
   const { imageData } = req.body;
   if (!imageData) {
     return res.status(400).json({ error: 'Image data is required' });

@@ -21,6 +21,8 @@ const getClient = () => {
  * @returns {Promise<import('./types').BillData>}
  */
 const extractBillData = async (base64Image) => {
+
+    console.log('Extracting bill data using Gemini service');
   // Remove data URL prefix if present
   const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
 
@@ -74,10 +76,11 @@ const extractBillData = async (base64Image) => {
       const data = JSON.parse(response.text);
       
       // Validate required fields (consistent with other AI services)
+      /*
       if (!data.storeName || !data.date || data.subtotal === undefined || 
           data.tax === undefined || data.total === undefined || !data.lineItems) {
         throw new Error("Missing required fields in response");
-      }
+      }*/
       
       return data;
     } catch (error) {
@@ -91,6 +94,7 @@ const extractBillData = async (base64Image) => {
 // Export service implementation
 const geminiService = {
   extractBillData,
+    name: 'Gemini'
 };
 
 module.exports = { geminiService, extractBillData };

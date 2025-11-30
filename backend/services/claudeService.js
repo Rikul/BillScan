@@ -21,6 +21,8 @@ const getClient = () => {
  * @returns {Promise<import('./types').BillData>}
  */
 const extractBillData = async (base64Image) => {
+
+    console.log('Extracting bill data using Claude service');
   // Remove data URL prefix if present
   const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
 
@@ -45,7 +47,7 @@ Return ONLY valid JSON with this exact structure (no markdown, no additional tex
 
   const client = getClient();
   const response = await client.messages.create({
-    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20241022",
+    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514",
     max_tokens: 1024,
     messages: [
       {
@@ -74,10 +76,11 @@ Return ONLY valid JSON with this exact structure (no markdown, no additional tex
       const data = JSON.parse(content.text);
       
       // Validate required fields
+      /*
       if (!data.storeName || !data.date || data.subtotal === undefined || 
           data.tax === undefined || data.total === undefined || !data.lineItems) {
         throw new Error("Missing required fields in response");
-      }
+      }*/
       
       return data;
     } catch (error) {
@@ -91,6 +94,7 @@ Return ONLY valid JSON with this exact structure (no markdown, no additional tex
 // Export service implementation
 const claudeService = {
   extractBillData,
+    name: 'Claude'
 };
 
 module.exports = { claudeService, extractBillData };

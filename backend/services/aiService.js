@@ -9,6 +9,7 @@
 const getAIService = async () => {
   const serviceType = process.env.AI_SERVICE || 'gemini';
   
+  console.log(`Configured AI service: ${serviceType}`);
   switch (serviceType) {
     case 'gemini': {
       const { geminiService } = await import('./geminiService.js');
@@ -41,6 +42,7 @@ const getAIService = async () => {
  */
 const extractBillData = async (base64Image) => {
   const service = await getAIService();
+  console.log(`Using AI service: ${service.name}`);
   return service.extractBillData(base64Image);
 };
 
