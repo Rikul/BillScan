@@ -1,6 +1,6 @@
-const sqlite3 = require('sqlite3');
-const { open } = require('sqlite');
-const path = require('path');
+const sqlite3 = require("sqlite3");
+const { open } = require("sqlite");
+const path = require("path");
 
 let dbInstance = null;
 
@@ -9,20 +9,20 @@ let dbInstance = null;
  * Used for backward compatibility with old records that stored base64 images.
  */
 function isBase64Image(value) {
-  if (!value || typeof value !== 'string') return false;
-  return value.startsWith('data:image/');
+    if (!value || typeof value !== "string") return false;
+    return value.startsWith("data:image/");
 }
 
 async function getDb() {
-  if (!dbInstance) {
-    // Use DATA_DIR environment variable if set, otherwise use current directory
-    const dataDir = process.env.DATA_DIR || __dirname;
-    dbInstance = await open({
-      filename: path.join(dataDir, 'bills.db'),
-      driver: sqlite3.Database
-    });
+    if (!dbInstance) {
+        // Use DATA_DIR environment variable if set, otherwise use current directory
+        const dataDir = process.env.DATA_DIR || __dirname;
+        dbInstance = await open({
+            filename: path.join(dataDir, "bills.db"),
+            driver: sqlite3.Database,
+        });
 
-    await dbInstance.exec(`
+        await dbInstance.exec(`
       CREATE TABLE IF NOT EXISTS bills (
         id TEXT PRIMARY KEY,
         storeName TEXT,
@@ -36,8 +36,8 @@ async function getDb() {
         lineItems TEXT
       )
     `);
-  }
-  return dbInstance;
+    }
+    return dbInstance;
 }
 
 module.exports = { getDb, isBase64Image };
