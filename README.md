@@ -51,21 +51,18 @@ BillScan supports multiple AI services for bill/receipt extraction. Configure wh
    ```env
    AI_SERVICE=openai
    OPENAI_API_KEY=your_openai_key_here
-   OPENAI_MODEL=gpt-4o-mini  # Optional, defaults to gpt-4o-mini
    ```
 
 3. **Claude** - Anthropic's Claude with vision
    ```env
    AI_SERVICE=claude
    ANTHROPIC_API_KEY=your_anthropic_key_here
-   ANTHROPIC_MODEL=claude-3-5-sonnet-20241022  # Optional
    ```
 
 4. **Ollama** - Local AI models
    ```env
    AI_SERVICE=ollama
    OLLAMA_HOST=http://localhost:11434  # Optional, defaults to localhost:11434
-   OLLAMA_MODEL=gemma3  # Optional, defaults to gemma3
    ```
 
 If `AI_SERVICE` is not set, the application defaults to `gemini`
@@ -105,7 +102,7 @@ From the `frontend/` directory:
    cd frontend
    npm install
    ```
-2. Configure your AI service in `.env.local` (create the file if missing):
+2. Configure your AI service in `.env` (create the file if missing):
    ```env
    # Choose your AI service
    AI_SERVICE=gemini  # or openai, claude, ollama
@@ -115,11 +112,9 @@ From the `frontend/` directory:
    
    # For OpenAI:
    # OPENAI_API_KEY=your_key_here
-   # OPENAI_MODEL=gpt-4o-mini
    
    # For Claude:
    # ANTHROPIC_API_KEY=your_key_here
-   # ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
    
    # For Ollama (local):
    # OLLAMA_HOST=http://localhost:11434
