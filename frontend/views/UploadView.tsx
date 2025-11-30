@@ -46,18 +46,12 @@ const UploadView: React.FC = () => {
         initializeRecord(result, resizedImage);
       } catch (err) {
         console.error(err);
-        setError("Could not analyze receipt. Please try again or enter details manually.");
-        // If analysis fails, we still let user enter manual data
-        const emptyData: BillData = {
-          storeName: "",
-          date: new Date().toISOString().split('T')[0],
-          total: 0,
-          tax: 0,
-          subtotal: 0,
-          lineItems: []
-        };
-        // We need the image even if analysis failed to initialize the record
-        if (resizedImage) initializeRecord(emptyData, resizedImage);
+        setError("Could not analyze receipt. Please try again.");
+        // Clear the image to redisplay the upload form
+        setImage(null);
+        setData(null);
+        setRecordId(null);
+        setCreatedAt(null);
       } finally {
         setIsAnalyzing(false);
       }
@@ -176,6 +170,12 @@ const UploadView: React.FC = () => {
       <div className="min-h-screen bg-gray-50 animate-fade-in">
         <Header title="Upload Receipt" onBack={handleBack} />
         <div className="p-6 flex flex-col h-[calc(100vh-100px)] items-center justify-center">
+          {error && (
+            <div className="w-full max-w-xl mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-800">{error}</p>
+            </div>
+          )}
           <Card
             className="w-full max-w-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center p-12 bg-gray-50/50 hover:bg-gray-100 transition-colors cursor-pointer group"
             onClick={() => fileInputRef.current?.click()}
