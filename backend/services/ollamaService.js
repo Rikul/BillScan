@@ -59,8 +59,9 @@ Return the data in valid JSON format with this exact structure:
     try {
       const data = JSON.parse(response.message.content);
       
-      // Validate required fields
-      if (!data.storeName || data.total === undefined || !data.lineItems) {
+      // Validate required fields (consistent with other AI services)
+      if (!data.storeName || !data.date || data.subtotal === undefined || 
+          data.tax === undefined || data.total === undefined || !data.lineItems) {
         throw new Error("Missing required fields in response");
       }
       
