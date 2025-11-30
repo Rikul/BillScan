@@ -69,10 +69,11 @@ Return the data in valid JSON format with this exact structure:
       const data = JSON.parse(content);
       
       // Validate required fields
+      /* 
       if (!data.storeName || !data.date || data.subtotal === undefined || 
           data.tax === undefined || data.total === undefined || !data.lineItems) {
         throw new Error("Missing required fields in response");
-      }
+      }*/
       
       return data;
     } catch (error) {
@@ -86,6 +87,7 @@ Return the data in valid JSON format with this exact structure:
 // Export service implementation
 const openaiService = {
   extractBillData,
+  name: "OpenAI",
 };
 
 module.exports = { openaiService, extractBillData };
