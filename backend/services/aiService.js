@@ -11,19 +11,19 @@ const getAIService = async () => {
   
   switch (serviceType) {
     case 'gemini': {
-      const { geminiService } = require('./geminiService');
+      const { geminiService } = await import('./geminiService.js');
       return geminiService;
     }
     case 'ollama': {
-      const { ollamaService } = require('./ollamaService');
+      const { ollamaService } = await import('./ollamaService.js');
       return ollamaService;
     }
     case 'openai': {
-      const { openaiService } = require('./openaiService');
+      const { openaiService } = await import('./openaiService.js');
       return openaiService;
     }
     case 'claude': {
-      const { claudeService } = require('./claudeService');
+      const { claudeService } = await import('./claudeService.js');
       return claudeService;
     }
     default:

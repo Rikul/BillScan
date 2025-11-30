@@ -1,12 +1,8 @@
-let Ollama = null;
 let ollamaInstance = null;
 
 const getOllama = async () => {
   if (!ollamaInstance) {
-    if (!Ollama) {
-      const ollamaModule = await import("ollama");
-      Ollama = ollamaModule.Ollama;
-    }
+    const { Ollama } = await import("ollama");
     ollamaInstance = new Ollama({ 
       host: process.env.OLLAMA_HOST || "http://localhost:11434"
     });

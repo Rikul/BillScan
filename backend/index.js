@@ -1,5 +1,4 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
@@ -10,7 +9,7 @@ const app = express();
 const PORT = 3000;
 
 // Increase limit for image uploads
-app.use(bodyParser.json({ limit: '50mb' }));
+app.use(express.json({ limit: '50mb' }));
 app.use(cors());
 
 // Serve receipt images statically
@@ -98,7 +97,7 @@ app.post('/api/extract-bill', async (req, res) => {
     res.json(billData);
   } catch (err) {
     console.error('Error extracting bill data:', err);
-    res.status(500).json({ error: err.message || 'Failed to extract bill data' });
+    res.status(500).json({ error: 'Failed to extract bill data' });
   }
 });
 

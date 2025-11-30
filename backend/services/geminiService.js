@@ -1,14 +1,14 @@
 const { GoogleGenAI, Type } = require("@google/genai");
 
 // Only initialize if key is present to avoid crash on load
-const apiKey = process.env.API_KEY;
+const apiKey = process.env.GEMINI_API_KEY;
 
 let genAI = null;
 
 const getClient = () => {
   if (!genAI) {
     if (!apiKey) {
-      throw new Error('API_KEY environment variable is required');
+      throw new Error('GEMINI_API_KEY environment variable is required');
     }
     genAI = new GoogleGenAI({ apiKey });
   }
@@ -70,10 +70,22 @@ const extractBillData = async (base64Image) => {
   });
 
   if (response.text) {
-    return JSON.parse(response.text);
+    try {
+      const data = JSON.parse(response.text);
+      
+      // Validate required fields (consistent with other AI services)
+      if (!data.storeName || !data.date || data.subtotal === undefined || 
+          data.tax === undefined || data.total === undefined || !data.lineItems) {
+        throw new Error("Missing required fields in response");
+      }
+      
+      return data;
+    } catch (error) {
+      throw new Error(`Failed to parse bill data: ${error instanceof Error ? error.message : 'Invalid JSON'}`);
+    }
   }
   
-  throw new Error("Failed to parse bill data");
+  throw new Error("No text content in response");
 };
 
 // Export service implementation
