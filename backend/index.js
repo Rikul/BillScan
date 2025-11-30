@@ -4,6 +4,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const { getDb, isBase64Image } = require('./db');
+const { extractBillData } = require('./services/aiService');
 
 const app = express();
 const PORT = 3000;
@@ -77,6 +78,27 @@ app.post('/api/upload-image', async (req, res) => {
   } catch (err) {
     console.error('Error saving image:', err);
     res.status(500).json({ error: 'Failed to save image' });
+  }
+});
+
+// POST /api/extract-bill - Extract bill data from an image using AI
+app.post('/api/extract-bill', async (req, res) => {
+  const { imageData } = req.body;
+  if (!imageData) {
+    return res.status(400).json({ error: 'Image data is required' });
+  }
+
+  // Validate that imageData is a base64 image
+  if (!isBase64Image(imageData)) {
+    return res.status(400).json({ error: 'Invalid image data format. Expected base64 data URL.' });
+  }
+
+  try {
+    const billData = await extractBillData(imageData);
+    res.json(billData);
+  } catch (err) {
+    console.error('Error extracting bill data:', err);
+    res.status(500).json({ error: err.message || 'Failed to extract bill data' });
   }
 });
 
