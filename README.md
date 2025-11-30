@@ -37,7 +37,7 @@ BillScan/
 
 ## AI Service Configuration
 
-BillScan supports multiple AI services for bill/receipt extraction. Configure which service to use by setting the `AI_SERVICE` environment variable in your `.env.local` file.
+BillScan supports multiple AI services for bill/receipt extraction. Configure which service to use by setting the `AI_SERVICE` environment variable in your `backend/.env` file.
 
 ### Supported Services
 
