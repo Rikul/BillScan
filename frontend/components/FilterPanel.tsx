@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Filter, X, ChevronDown, ChevronUp } from "lucide-react";
-import { Button, Input, Label } from "./UI";
+import { Input, Label } from "./UI";
 
 export interface FilterState {
     dateFrom: string;
@@ -56,7 +56,7 @@ export const hasActiveFilters = (filters: FilterState): boolean => {
 
 interface FilterPanelProps {
     filters: FilterState;
-    onFiltersChange: (filters: FilterState) => void;
+    onFiltersChange: (filters: FilterState | ((prev: FilterState) => FilterState)) => void;
 }
 
 const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFiltersChange }) => {
@@ -68,11 +68,11 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFiltersChange }) =
     }, [filters]);
 
     const handleChange = useCallback((field: keyof FilterState, value: string) => {
-        onFiltersChange({
-            ...filters,
+        onFiltersChange((prevFilters) => ({
+            ...prevFilters,
             [field]: value,
-        });
-    }, [filters, onFiltersChange]);
+        }));
+    }, [onFiltersChange]);
 
     const handleClearFilters = useCallback(() => {
         onFiltersChange(defaultFilters);
@@ -191,6 +191,24 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFiltersChange }) =
                             />
                         </div>
                     </div>
+
+                    {/* Validation Warnings */}
+                    {(filters.dateFrom && filters.dateTo && filters.dateTo < filters.dateFrom) && (
+                        <div className="mt-3 text-red-600 text-sm flex items-center gap-2">
+                            <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                            Warning: "Date To" must be after "Date From"
+                        </div>
+                    )}
+                    {(() => {
+                        const minVal = parseFloat(filters.minAmount);
+                        const maxVal = parseFloat(filters.maxAmount);
+                        return filters.minAmount && filters.maxAmount && !isNaN(minVal) && !isNaN(maxVal) && maxVal < minVal;
+                    })() && (
+                        <div className="mt-3 text-red-600 text-sm flex items-center gap-2">
+                            <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                            Warning: "Max Amount" must be greater than or equal to "Min Amount"
+                        </div>
+                    )}
 
                     {/* Active Filters Summary */}
                     {activeFilterCount > 0 && (

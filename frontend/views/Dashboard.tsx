@@ -5,7 +5,7 @@ import { BillRecord } from "../types";
 import { getBills } from "../services/storageService";
 import { Button, Card, Header, Input } from "../components/UI";
 import { formatCurrency, formatDate } from "../utils";
-import FilterPanel, { FilterState, loadFiltersFromStorage, hasActiveFilters } from "../components/FilterPanel";
+import FilterPanel, { FilterState, loadFiltersFromStorage } from "../components/FilterPanel";
 
 type SortField = 'date' | 'storeName' | 'total' | 'tax' | 'subtotal';
 type SortDirection = 'asc' | 'desc';
@@ -33,10 +33,8 @@ const Dashboard: React.FC = () => {
         // Pre-compute values outside the filter loop for performance
         const searchTermLower = searchTerm.toLowerCase();
         const storeNameFilterLower = filters.storeName.toLowerCase();
-        const minAmount = filters.minAmount ? parseFloat(filters.minAmount) : null;
-        const maxAmount = filters.maxAmount ? parseFloat(filters.maxAmount) : null;
-        const parsedMinAmount = minAmount !== null && !isNaN(minAmount) ? minAmount : null;
-        const parsedMaxAmount = maxAmount !== null && !isNaN(maxAmount) ? maxAmount : null;
+        const parsedMinAmount = filters.minAmount ? parseFloat(filters.minAmount) : null;
+        const parsedMaxAmount = filters.maxAmount ? parseFloat(filters.maxAmount) : null;
 
         return bills.filter((bill) => {
             // Basic text search filter
@@ -59,12 +57,12 @@ const Dashboard: React.FC = () => {
             }
 
             // Min amount filter (total including tax)
-            if (parsedMinAmount !== null && (bill.total || 0) < parsedMinAmount) {
+            if (parsedMinAmount !== null && !isNaN(parsedMinAmount) && (bill.total || 0) < parsedMinAmount) {
                 return false;
             }
 
             // Max amount filter (total including tax)
-            if (parsedMaxAmount !== null && (bill.total || 0) > parsedMaxAmount) {
+            if (parsedMaxAmount !== null && !isNaN(parsedMaxAmount) && (bill.total || 0) > parsedMaxAmount) {
                 return false;
             }
 
