@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Receipt, TrendingUp, Calendar, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { BillRecord } from "../types";
 import { getBills } from "../services/storageService";
 import { Button, Card, Header, Input } from "../components/UI";
 import { formatCurrency, formatDate } from "../utils";
+import FilterPanel, { FilterState, loadFiltersFromStorage } from "../components/FilterPanel";
 
 type SortField = 'date' | 'storeName' | 'total' | 'tax' | 'subtotal';
 type SortDirection = 'asc' | 'desc';
@@ -16,6 +17,7 @@ const Dashboard: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [sortField, setSortField] = useState<SortField>('date');
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+    const [filters, setFilters] = useState<FilterState>(loadFiltersFromStorage);
     const billsPerPage = 20;
 
     useEffect(() => {
@@ -26,10 +28,52 @@ const Dashboard: React.FC = () => {
         fetchBills();
     }, []);
 
-    const filteredBills = bills.filter(b =>
-        b.storeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        b.date.includes(searchTerm)
-    );
+    // Apply search term and advanced filters with memoization
+    const filteredBills = useMemo(() => {
+        // Pre-compute values outside the filter loop for performance
+        const searchTermLower = searchTerm.toLowerCase();
+        const storeNameFilterLower = filters.storeName.toLowerCase();
+        const parsedMinAmount = filters.minAmount ? parseFloat(filters.minAmount) : null;
+        const parsedMaxAmount = filters.maxAmount ? parseFloat(filters.maxAmount) : null;
+
+        return bills.filter((bill) => {
+            // Basic text search filter
+            const storeNameLower = bill.storeName.toLowerCase();
+            if (searchTerm && !storeNameLower.includes(searchTermLower) && !bill.date.includes(searchTerm)) {
+                return false;
+            }
+
+            // Date range filter
+            if (filters.dateFrom && bill.date < filters.dateFrom) {
+                return false;
+            }
+            if (filters.dateTo && bill.date > filters.dateTo) {
+                return false;
+            }
+
+            // Store name filter (case-insensitive partial match)
+            if (filters.storeName && !storeNameLower.includes(storeNameFilterLower)) {
+                return false;
+            }
+
+            // Min amount filter (total including tax)
+            if (parsedMinAmount !== null && !isNaN(parsedMinAmount) && (bill.total || 0) < parsedMinAmount) {
+                return false;
+            }
+
+            // Max amount filter (total including tax)
+            if (parsedMaxAmount !== null && !isNaN(parsedMaxAmount) && (bill.total || 0) > parsedMaxAmount) {
+                return false;
+            }
+
+            return true;
+        });
+    }, [bills, searchTerm, filters]);
+
+    // Reset to first page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filters, searchTerm]);
 
     // Sorting logic
     const sortedBills = [...filteredBills].sort((a, b) => {
@@ -152,6 +196,9 @@ const Dashboard: React.FC = () => {
                         className="pl-10 bg-white"
                     />
                 </div>
+
+                {/* Filter Panel */}
+                <FilterPanel filters={filters} onFiltersChange={setFilters} />
 
                 {/* Bills Table */}
                 <div className="space-y-4">
