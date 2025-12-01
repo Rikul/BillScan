@@ -28,49 +28,49 @@ const Dashboard: React.FC = () => {
         fetchBills();
     }, []);
 
-    // Apply search term filter (basic text search)
-    const searchFiltered = bills.filter(b =>
-        b.storeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        b.date.includes(searchTerm)
-    );
-
-    // Apply advanced filters
+    // Apply search term and advanced filters with memoization
     const filteredBills = useMemo(() => {
-        return searchFiltered.filter((bill) => {
-            // Date range filter
-            if (filters.dateFrom) {
-                if (bill.date < filters.dateFrom) return false;
+        // Pre-compute values outside the filter loop for performance
+        const searchTermLower = searchTerm.toLowerCase();
+        const storeNameFilterLower = filters.storeName.toLowerCase();
+        const minAmount = filters.minAmount ? parseFloat(filters.minAmount) : null;
+        const maxAmount = filters.maxAmount ? parseFloat(filters.maxAmount) : null;
+        const parsedMinAmount = minAmount !== null && !isNaN(minAmount) ? minAmount : null;
+        const parsedMaxAmount = maxAmount !== null && !isNaN(maxAmount) ? maxAmount : null;
+
+        return bills.filter((bill) => {
+            // Basic text search filter
+            const storeNameLower = bill.storeName.toLowerCase();
+            if (searchTerm && !storeNameLower.includes(searchTermLower) && !bill.date.includes(searchTerm)) {
+                return false;
             }
-            if (filters.dateTo) {
-                if (bill.date > filters.dateTo) return false;
+
+            // Date range filter
+            if (filters.dateFrom && bill.date < filters.dateFrom) {
+                return false;
+            }
+            if (filters.dateTo && bill.date > filters.dateTo) {
+                return false;
             }
 
             // Store name filter (case-insensitive partial match)
-            if (filters.storeName) {
-                if (!bill.storeName.toLowerCase().includes(filters.storeName.toLowerCase())) {
-                    return false;
-                }
+            if (filters.storeName && !storeNameLower.includes(storeNameFilterLower)) {
+                return false;
             }
 
             // Min amount filter (total including tax)
-            if (filters.minAmount) {
-                const minAmount = parseFloat(filters.minAmount);
-                if (!isNaN(minAmount) && (bill.total || 0) < minAmount) {
-                    return false;
-                }
+            if (parsedMinAmount !== null && (bill.total || 0) < parsedMinAmount) {
+                return false;
             }
 
             // Max amount filter (total including tax)
-            if (filters.maxAmount) {
-                const maxAmount = parseFloat(filters.maxAmount);
-                if (!isNaN(maxAmount) && (bill.total || 0) > maxAmount) {
-                    return false;
-                }
+            if (parsedMaxAmount !== null && (bill.total || 0) > parsedMaxAmount) {
+                return false;
             }
 
             return true;
         });
-    }, [searchFiltered, filters]);
+    }, [bills, searchTerm, filters]);
 
     // Reset to first page when filters change
     useEffect(() => {
