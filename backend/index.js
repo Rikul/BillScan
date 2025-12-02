@@ -155,13 +155,20 @@ app.get("/api/bills", async (req, res) => {
             conditions.push("LOWER(storeName) LIKE ?");
             params.push(`%${storeName.toLowerCase()}%`);
         }
-        if (minAmount && !isNaN(parseFloat(minAmount))) {
-            conditions.push("total >= ?");
-            params.push(parseFloat(minAmount));
+        // Stricter validation for amount filters
+        if (minAmount) {
+            const minAmountNum = Number(minAmount);
+            if (!isNaN(minAmountNum) && String(minAmountNum) === String(minAmount).trim()) {
+                conditions.push("total >= ?");
+                params.push(minAmountNum);
+            }
         }
-        if (maxAmount && !isNaN(parseFloat(maxAmount))) {
-            conditions.push("total <= ?");
-            params.push(parseFloat(maxAmount));
+        if (maxAmount) {
+            const maxAmountNum = Number(maxAmount);
+            if (!isNaN(maxAmountNum) && String(maxAmountNum) === String(maxAmount).trim()) {
+                conditions.push("total <= ?");
+                params.push(maxAmountNum);
+            }
         }
         if (searchTerm) {
             conditions.push("(LOWER(storeName) LIKE ? OR date LIKE ?)");
@@ -188,11 +195,13 @@ app.get("/api/bills", async (req, res) => {
         let paginationParams = [];
         const pageNum = parseInt(page, 10);
         const pageSizeNum = parseInt(pageSize, 10);
+        const MAX_PAGE_SIZE = 100; // Maximum allowed page size
 
         if (!isNaN(pageNum) && pageNum > 0 && !isNaN(pageSizeNum) && pageSizeNum > 0) {
-            const offset = (pageNum - 1) * pageSizeNum;
+            const effectivePageSize = Math.min(pageSizeNum, MAX_PAGE_SIZE);
+            const offset = (pageNum - 1) * effectivePageSize;
             limitClause = "LIMIT ? OFFSET ?";
-            paginationParams = [pageSizeNum, offset];
+            paginationParams = [effectivePageSize, offset];
         }
 
         // Execute final query
@@ -216,12 +225,13 @@ app.get("/api/bills", async (req, res) => {
 
         // Return response with pagination metadata if pagination was requested
         if (!isNaN(pageNum) && pageNum > 0 && !isNaN(pageSizeNum) && pageSizeNum > 0) {
-            const totalPages = Math.ceil(totalCount / pageSizeNum);
+            const effectivePageSize = Math.min(pageSizeNum, MAX_PAGE_SIZE);
+            const totalPages = Math.ceil(totalCount / effectivePageSize);
             res.json({
                 bills: parsedBills,
                 pagination: {
                     currentPage: pageNum,
-                    pageSize: pageSizeNum,
+                    pageSize: effectivePageSize,
                     totalCount,
                     totalPages
                 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Receipt, TrendingUp, Calendar, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { BillRecord, PaginatedBillsResponse, PaginationInfo } from "../types";
@@ -103,16 +103,19 @@ const Dashboard: React.FC = () => {
 
     const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-    // Calculate stats from all bills (without filters)
-    const totalSpent = allBills.reduce((acc, curr) => acc + (curr.total || 0), 0);
-    const lastMonthTotal = allBills.reduce((acc, curr) => {
-        const [year, month, day] = curr.date.split('-').map(Number);
-        const date = new Date(year, month - 1, day);
-        const now = new Date();
-        const diffTime = Math.abs(now.getTime() - date.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays <= 30 ? acc + (curr.total || 0) : acc;
-    }, 0);
+    // Calculate stats from all bills (without filters) - memoized for performance
+    const { totalSpent, lastMonthTotal } = useMemo(() => {
+        const total = allBills.reduce((acc, curr) => acc + (curr.total || 0), 0);
+        const lastMonth = allBills.reduce((acc, curr) => {
+            const [year, month, day] = curr.date.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+            const now = new Date();
+            const diffTime = Math.abs(now.getTime() - date.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays <= 30 ? acc + (curr.total || 0) : acc;
+        }, 0);
+        return { totalSpent: total, lastMonthTotal: lastMonth };
+    }, [allBills]);
 
     // Pagination values from server response
     const totalPages = pagination?.totalPages ?? 0;
