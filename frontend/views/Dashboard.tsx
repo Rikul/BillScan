@@ -6,6 +6,7 @@ import { getBills } from "../services/storageService";
 import { Button, Card, Header, Input } from "../components/UI";
 import { formatCurrency, formatDate } from "../utils";
 import FilterPanel, { FilterState, loadFiltersFromStorage } from "../components/FilterPanel";
+import Pagination from "../components/Pagination";
 
 type SortField = 'date' | 'storeName' | 'total' | 'tax' | 'subtotal';
 type SortDirection = 'asc' | 'desc';
@@ -208,11 +209,15 @@ const Dashboard: React.FC = () => {
 
                 {/* Bills Table */}
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-gray-200 pb-2">
-                        <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                            {isLoading ? 'Loading...' : `${totalCount} found`}
-                        </span>
-                    </div>
+                    
+                     {/* Top Pagination */}
+                    <Pagination 
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        totalCount={totalCount}
+                        billsPerPage={billsPerPage}
+                        onPageChange={paginate}
+                    />
 
                     {!isLoading && bills.length === 0 ? (
                         <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
@@ -364,52 +369,15 @@ const Dashboard: React.FC = () => {
                                 ))}
                             </div>
 
-                            {/* Pagination */}
-                            {totalPages > 1 && (
-                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                                    <div className="text-sm text-gray-600">
-                                        Showing {((currentPage - 1) * billsPerPage) + 1} to {Math.min(currentPage * billsPerPage, totalCount)} of {totalCount} bills
-                                    </div>
-                                    <nav className="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                                        <button
-                                            onClick={() => paginate(Math.max(1, currentPage - 1))}
-                                            disabled={currentPage === 1}
-                                            className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            Previous
-                                        </button>
-                                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                            let pageNum;
-                                            if (totalPages <= 5) {
-                                                pageNum = i + 1;
-                                            } else if (currentPage <= 3) {
-                                                pageNum = i + 1;
-                                            } else if (currentPage >= totalPages - 2) {
-                                                pageNum = totalPages - 4 + i;
-                                            } else {
-                                                pageNum = currentPage - 2 + i;
-                                            }
-                                            return (
-                                                <button
-                                                    key={pageNum}
-                                                    onClick={() => paginate(pageNum)}
-                                                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium hover:bg-gray-50 ${currentPage === pageNum ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600' : 'text-gray-700'
-                                                        }`}
-                                                >
-                                                    {pageNum}
-                                                </button>
-                                            );
-                                        })}
-                                        <button
-                                            onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-                                            disabled={currentPage === totalPages}
-                                            className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            Next
-                                        </button>
-                                    </nav>
-                                </div>
-                            )}
+                              {/* Bottom Pagination */}
+                            <Pagination 
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalCount={totalCount}
+                                billsPerPage={billsPerPage}
+                                onPageChange={paginate}
+                            />
+
                         </>
                     )}
                 </div>
