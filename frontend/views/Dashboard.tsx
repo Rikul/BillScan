@@ -34,7 +34,7 @@ const Dashboard: React.FC = () => {
                 storeName: appliedFilters.storeName || undefined,
                 minAmount: appliedFilters.minAmount || undefined,
                 maxAmount: appliedFilters.maxAmount || undefined,
-                searchTerm: searchTerm || undefined,
+                //searchTerm: searchTerm || undefined,
                 page: currentPage,
                 pageSize: billsPerPage,
                 sortField,
@@ -65,7 +65,7 @@ const Dashboard: React.FC = () => {
     // Reset to first page when applied filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [appliedFilters, searchTerm]);
+    }, [appliedFilters , searchTerm  ]);
 
     // Handler to apply filters when button is clicked
     const handleApplyFilters = useCallback(() => {
@@ -148,17 +148,6 @@ const Dashboard: React.FC = () => {
                             </Button>
                         </div>
                     </div>
-                </div>
-
-                {/* Search */}
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                        placeholder="Search stores or dates..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 bg-white"
-                    />
                 </div>
 
                 {/* Filter Panel */}
