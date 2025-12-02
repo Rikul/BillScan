@@ -57,25 +57,9 @@ const Dashboard: React.FC = () => {
         }
     }, [filters, searchTerm, currentPage, sortField, sortDirection, billsPerPage]);
 
-    // Fetch all bills for stats (without filters)
-    const fetchAllBillsForStats = useCallback(async () => {
-        try {
-            const response = await getBills();
-            if (Array.isArray(response)) {
-                setAllBills(response);
-            }
-        } catch (error) {
-            console.error("Error fetching all bills for stats:", error);
-        }
-    }, []);
-
     useEffect(() => {
         fetchBills();
     }, [fetchBills]);
-
-    useEffect(() => {
-        fetchAllBillsForStats();
-    }, [fetchAllBillsForStats]);
 
     // Reset to first page when filters change
     useEffect(() => {
