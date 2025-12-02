@@ -62,6 +62,7 @@ interface FilterPanelProps {
 
 const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFiltersChange, onApplyFilters }) => {
     const [isExpanded, setIsExpanded] = useState(() => hasActiveFilters(filters));
+    const [shouldApplyFilters, setShouldApplyFilters] = useState(false);
 
     // Save filters whenever they change
     useEffect(() => {
@@ -75,17 +76,19 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFiltersChange, onA
         }));
     }, [onFiltersChange]);
 
-    const handleClearFilters = useCallback(() => {
-        onFiltersChange(defaultFilters);
-    }, [onFiltersChange]);
+    useEffect(() => {
+        if (shouldApplyFilters) {
+            onApplyFilters();
+            setShouldApplyFilters(false);
+        }
+    }, [shouldApplyFilters, onApplyFilters]);
 
-    const activeFilterCount = [
-        filters.dateFrom,
-        filters.dateTo,
-        filters.storeName,
-        filters.minAmount,
-        filters.maxAmount,
-    ].filter(Boolean).length;
+
+    const handleClearFilters = useCallback(() => {
+        setIsExpanded(false);
+        onFiltersChange(defaultFilters);
+        setShouldApplyFilters(true);
+    });
 
     return (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -99,25 +102,10 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFiltersChange, onA
                         <Filter className="w-4 h-4 text-indigo-600" />
                     </div>
                     <span className="font-medium text-gray-900">Filters</span>
-                    {activeFilterCount > 0 && (
-                        <span className="px-2 py-0.5 text-xs font-semibold bg-indigo-100 text-indigo-700 rounded-full">
-                            {activeFilterCount} active
-                        </span>
-                    )}
+        
                 </div>
+        
                 <div className="flex items-center gap-2">
-                    {activeFilterCount > 0 && (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleClearFilters();
-                            }}
-                            className="text-xs text-gray-500 hover:text-red-600 transition-colors flex items-center gap-1 px-2 py-1 rounded hover:bg-red-50"
-                        >
-                            <X className="w-3 h-3" />
-                            Clear all
-                        </button>
-                    )}
                     {isExpanded ? (
                         <ChevronUp className="w-5 h-5 text-gray-400" />
                     ) : (
@@ -217,45 +205,11 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFiltersChange, onA
                             <Search className="w-4 h-4 mr-2" />
                             Apply Filters
                         </Button>
-                    </div>
 
-                    {/* Active Filters Summary */}
-                    {activeFilterCount > 0 && (
-                        <div className="mt-4 pt-3 border-t border-gray-100">
-                            <div className="flex flex-wrap gap-2">
-                                {filters.dateFrom && (
-                                    <FilterTag
-                                        label={`From: ${filters.dateFrom}`}
-                                        onRemove={() => handleChange("dateFrom", "")}
-                                    />
-                                )}
-                                {filters.dateTo && (
-                                    <FilterTag
-                                        label={`To: ${filters.dateTo}`}
-                                        onRemove={() => handleChange("dateTo", "")}
-                                    />
-                                )}
-                                {filters.storeName && (
-                                    <FilterTag
-                                        label={`Store: ${filters.storeName}`}
-                                        onRemove={() => handleChange("storeName", "")}
-                                    />
-                                )}
-                                {filters.minAmount && (
-                                    <FilterTag
-                                        label={`Min: $${filters.minAmount}`}
-                                        onRemove={() => handleChange("minAmount", "")}
-                                    />
-                                )}
-                                {filters.maxAmount && (
-                                    <FilterTag
-                                        label={`Max: $${filters.maxAmount}`}
-                                        onRemove={() => handleChange("maxAmount", "")}
-                                    />
-                                )}
-                            </div>
-                        </div>
-                    )}
+                        <Button onClick={handleClearFilters} variant="secondary" className="ml-2">
+                            Clear Filters
+                        </Button>
+                    </div>
                 </div>
             )}
         </div>
