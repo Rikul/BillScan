@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Receipt, TrendingUp, Calendar, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { BillRecord } from "../types";
+import { BillRecord, PaginatedBillsResponse, PaginationInfo } from "../types";
 import { getBills } from "../services/storageService";
 import { Button, Card, Header, Input } from "../components/UI";
 import { formatCurrency, formatDate } from "../utils";
@@ -13,108 +13,74 @@ type SortDirection = 'asc' | 'desc';
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
     const [bills, setBills] = useState<BillRecord[]>([]);
+    const [allBills, setAllBills] = useState<BillRecord[]>([]); // For stats calculation
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [sortField, setSortField] = useState<SortField>('date');
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
     const [filters, setFilters] = useState<FilterState>(loadFiltersFromStorage);
+    const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
     const billsPerPage = 20;
 
-    useEffect(() => {
-        async function fetchBills() {
-            const data = await getBills();
-            setBills(data);
+    // Fetch bills from API with server-side filtering and pagination
+    const fetchBills = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const response = await getBills({
+                dateFrom: filters.dateFrom || undefined,
+                dateTo: filters.dateTo || undefined,
+                storeName: filters.storeName || undefined,
+                minAmount: filters.minAmount || undefined,
+                maxAmount: filters.maxAmount || undefined,
+                searchTerm: searchTerm || undefined,
+                page: currentPage,
+                pageSize: billsPerPage,
+                sortField,
+                sortDirection
+            });
+
+            // Check if response is paginated (has pagination property)
+            if (response && typeof response === 'object' && 'pagination' in response) {
+                const paginatedResponse = response as PaginatedBillsResponse;
+                setBills(paginatedResponse.bills);
+                setPagination(paginatedResponse.pagination);
+            } else {
+                // Fallback for array response
+                setBills(response as BillRecord[]);
+                setPagination(null);
+            }
+        } catch (error) {
+            console.error("Error fetching bills:", error);
+        } finally {
+            setIsLoading(false);
         }
-        fetchBills();
+    }, [filters, searchTerm, currentPage, sortField, sortDirection, billsPerPage]);
+
+    // Fetch all bills for stats (without filters)
+    const fetchAllBillsForStats = useCallback(async () => {
+        try {
+            const response = await getBills();
+            if (Array.isArray(response)) {
+                setAllBills(response);
+            }
+        } catch (error) {
+            console.error("Error fetching all bills for stats:", error);
+        }
     }, []);
 
-    // Apply search term and advanced filters with memoization
-    const filteredBills = useMemo(() => {
-        // Pre-compute values outside the filter loop for performance
-        const searchTermLower = searchTerm.toLowerCase();
-        const storeNameFilterLower = filters.storeName.toLowerCase();
-        const parsedMinAmount = filters.minAmount ? parseFloat(filters.minAmount) : null;
-        const parsedMaxAmount = filters.maxAmount ? parseFloat(filters.maxAmount) : null;
+    useEffect(() => {
+        fetchBills();
+    }, [fetchBills]);
 
-        return bills.filter((bill) => {
-            // Basic text search filter
-            const storeNameLower = bill.storeName.toLowerCase();
-            if (searchTerm && !storeNameLower.includes(searchTermLower) && !bill.date.includes(searchTerm)) {
-                return false;
-            }
-
-            // Date range filter
-            if (filters.dateFrom && bill.date < filters.dateFrom) {
-                return false;
-            }
-            if (filters.dateTo && bill.date > filters.dateTo) {
-                return false;
-            }
-
-            // Store name filter (case-insensitive partial match)
-            if (filters.storeName && !storeNameLower.includes(storeNameFilterLower)) {
-                return false;
-            }
-
-            // Min amount filter (total including tax)
-            if (parsedMinAmount !== null && !isNaN(parsedMinAmount) && (bill.total || 0) < parsedMinAmount) {
-                return false;
-            }
-
-            // Max amount filter (total including tax)
-            if (parsedMaxAmount !== null && !isNaN(parsedMaxAmount) && (bill.total || 0) > parsedMaxAmount) {
-                return false;
-            }
-
-            return true;
-        });
-    }, [bills, searchTerm, filters]);
+    useEffect(() => {
+        fetchAllBillsForStats();
+    }, [fetchAllBillsForStats]);
 
     // Reset to first page when filters change
     useEffect(() => {
         setCurrentPage(1);
     }, [filters, searchTerm]);
-
-    // Sorting logic
-    const sortedBills = [...filteredBills].sort((a, b) => {
-        let aValue: any;
-        let bValue: any;
-
-        switch (sortField) {
-            case 'date':
-                const [yearA, monthA, dayA] = a.date.split('-').map(Number);
-                const [yearB, monthB, dayB] = b.date.split('-').map(Number);
-                aValue = new Date(yearA, monthA - 1, dayA).getTime();
-                bValue = new Date(yearB, monthB - 1, dayB).getTime();
-                break;
-            case 'storeName':
-                aValue = a.storeName.toLowerCase();
-                bValue = b.storeName.toLowerCase();
-                break;
-            case 'total':
-                aValue = a.total || 0;
-                bValue = b.total || 0;
-                break;
-            case 'tax':
-                aValue = a.tax || 0;
-                bValue = b.tax || 0;
-                break;
-            case 'subtotal':
-                aValue = a.subtotal || 0;
-                bValue = b.subtotal || 0;
-                break;
-        }
-
-        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
-    });
-
-    // Pagination
-    const indexOfLastBill = currentPage * billsPerPage;
-    const indexOfFirstBill = indexOfLastBill - billsPerPage;
-    const currentBills = sortedBills.slice(indexOfFirstBill, indexOfLastBill);
-    const totalPages = Math.ceil(sortedBills.length / billsPerPage);
 
     const handleSort = (field: SortField) => {
         if (sortField === field) {
@@ -137,8 +103,9 @@ const Dashboard: React.FC = () => {
 
     const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-    const totalSpent = bills.reduce((acc, curr) => acc + (curr.total || 0), 0);
-    const lastMonthTotal = bills.reduce((acc, curr) => {
+    // Calculate stats from all bills (without filters)
+    const totalSpent = allBills.reduce((acc, curr) => acc + (curr.total || 0), 0);
+    const lastMonthTotal = allBills.reduce((acc, curr) => {
         const [year, month, day] = curr.date.split('-').map(Number);
         const date = new Date(year, month - 1, day);
         const now = new Date();
@@ -146,6 +113,10 @@ const Dashboard: React.FC = () => {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays <= 30 ? acc + (curr.total || 0) : acc;
     }, 0);
+
+    // Pagination values from server response
+    const totalPages = pagination?.totalPages ?? 0;
+    const totalCount = pagination?.totalCount ?? bills.length;
 
     return (
         <div className="min-h-screen pb-24 bg-gray-50 animate-fade-in">
@@ -204,11 +175,11 @@ const Dashboard: React.FC = () => {
                 <div className="space-y-4">
                     <div className="flex items-center justify-between border-b border-gray-200 pb-2">
                         <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                            {sortedBills.length} found
+                            {isLoading ? 'Loading...' : `${totalCount} found`}
                         </span>
                     </div>
 
-                    {sortedBills.length === 0 ? (
+                    {!isLoading && bills.length === 0 ? (
                         <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
                             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Receipt className="w-8 h-8 text-gray-300" />
@@ -275,7 +246,7 @@ const Dashboard: React.FC = () => {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200">
-                                            {currentBills.map((bill) => (
+                                            {bills.map((bill) => (
                                                 <tr
                                                     key={bill.id}
                                                     onClick={() => navigate(`/bill/${bill.id}`)}
@@ -322,7 +293,7 @@ const Dashboard: React.FC = () => {
 
                             {/* Mobile Card View */}
                             <div className="md:hidden space-y-2">
-                                {currentBills.map((bill) => (
+                                {bills.map((bill) => (
                                     <Card
                                         key={bill.id}
                                         onClick={() => navigate(`/bill/${bill.id}`)}
@@ -362,7 +333,7 @@ const Dashboard: React.FC = () => {
                             {totalPages > 1 && (
                                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
                                     <div className="text-sm text-gray-600">
-                                        Showing {indexOfFirstBill + 1} to {Math.min(indexOfLastBill, sortedBills.length)} of {sortedBills.length} bills
+                                        Showing {((currentPage - 1) * billsPerPage) + 1} to {Math.min(currentPage * billsPerPage, totalCount)} of {totalCount} bills
                                     </div>
                                     <nav className="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                                         <button
