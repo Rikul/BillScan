@@ -120,11 +120,94 @@ app.post("/api/extract-bill", async (req, res) => {
     }
 });
 
-// GET /api/bills - Fetch all bills
+// GET /api/bills - Fetch bills with optional filtering and paging
 app.get("/api/bills", async (req, res) => {
     try {
         const db = await getDb();
-        const bills = await db.all("SELECT * FROM bills ORDER BY date DESC");
+
+        // Parse query parameters for filtering
+        const {
+            dateFrom,
+            dateTo,
+            storeName,
+            minAmount,
+            maxAmount,
+            searchTerm,
+            page,
+            pageSize,
+            sortField = 'date',
+            sortDirection = 'desc'
+        } = req.query;
+
+        // Build WHERE clause
+        const conditions = [];
+        const params = [];
+
+        if (dateFrom) {
+            conditions.push("date >= ?");
+            params.push(dateFrom);
+        }
+        if (dateTo) {
+            conditions.push("date <= ?");
+            params.push(dateTo);
+        }
+        if (storeName) {
+            conditions.push("LOWER(storeName) LIKE ?");
+            params.push(`%${storeName.toLowerCase()}%`);
+        }
+        // Stricter validation for amount filters
+        if (minAmount) {
+            const minAmountNum = Number(minAmount);
+            if (!isNaN(minAmountNum) && String(minAmountNum) === String(minAmount).trim()) {
+                conditions.push("total >= ?");
+                params.push(minAmountNum);
+            }
+        }
+        if (maxAmount) {
+            const maxAmountNum = Number(maxAmount);
+            if (!isNaN(maxAmountNum) && String(maxAmountNum) === String(maxAmount).trim()) {
+                conditions.push("total <= ?");
+                params.push(maxAmountNum);
+            }
+        }
+        if (searchTerm) {
+            conditions.push("(LOWER(storeName) LIKE ? OR date LIKE ?)");
+            params.push(`%${searchTerm.toLowerCase()}%`, `%${searchTerm}%`);
+        }
+
+        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+        // Validate and sanitize sort parameters
+        const allowedSortFields = ['date', 'storeName', 'total', 'tax', 'subtotal'];
+        const sanitizedSortField = allowedSortFields.includes(sortField) ? sortField : 'date';
+        const sanitizedSortDirection = sortDirection === 'asc' ? 'ASC' : 'DESC';
+
+        // Get total count for pagination
+        const countQuery = `SELECT COUNT(*) as count FROM bills ${whereClause}`;
+        const countResult = await db.get(countQuery, params);
+        const totalCount = countResult.count;
+
+        // Build ORDER BY clause
+        const orderClause = `ORDER BY ${sanitizedSortField} ${sanitizedSortDirection}`;
+
+        // Build LIMIT/OFFSET clause for pagination
+        let limitClause = "";
+        let paginationParams = [];
+        const pageNum = parseInt(page, 10);
+        const pageSizeNum = parseInt(pageSize, 10);
+        const MAX_PAGE_SIZE = 100; // Maximum allowed page size
+
+        if (!isNaN(pageNum) && pageNum > 0 && !isNaN(pageSizeNum) && pageSizeNum > 0) {
+            const effectivePageSize = Math.min(pageSizeNum, MAX_PAGE_SIZE);
+            const offset = (pageNum - 1) * effectivePageSize;
+            limitClause = "LIMIT ? OFFSET ?";
+            paginationParams = [effectivePageSize, offset];
+        }
+
+        // Execute final query
+        const query = `SELECT * FROM bills ${whereClause} ${orderClause} ${limitClause}`;
+        const bills = await db.all(query, [...params, ...paginationParams]);
+
         // Parse lineItems from JSON string and handle backward compatibility for imagePath
         const parsedBills = bills.map((bill) => {
             const parsed = {
@@ -139,7 +222,24 @@ app.get("/api/bills", async (req, res) => {
             }
             return parsed;
         });
-        res.json(parsedBills);
+
+        // Return response with pagination metadata if pagination was requested
+        if (!isNaN(pageNum) && pageNum > 0 && !isNaN(pageSizeNum) && pageSizeNum > 0) {
+            const effectivePageSize = Math.min(pageSizeNum, MAX_PAGE_SIZE);
+            const totalPages = Math.ceil(totalCount / effectivePageSize);
+            res.json({
+                bills: parsedBills,
+                pagination: {
+                    currentPage: pageNum,
+                    pageSize: effectivePageSize,
+                    totalCount,
+                    totalPages
+                }
+            });
+        } else {
+            // For backward compatibility, return just the array when no pagination is requested
+            res.json(parsedBills);
+        }
     } catch (err) {
         console.error("Error fetching bills:", err);
         res.status(500).json({ error: err.message });

@@ -21,10 +21,38 @@ export interface BillRecord extends BillData {
     createdAt: string; // ISO Timestamp
 }
 
+// Filter parameters for bills query
+export interface BillsFilterParams {
+    dateFrom?: string;
+    dateTo?: string;
+    storeName?: string;
+    minAmount?: string;
+    maxAmount?: string;
+    searchTerm?: string;
+    page?: number;
+    pageSize?: number;
+    sortField?: 'date' | 'storeName' | 'total' | 'tax' | 'subtotal';
+    sortDirection?: 'asc' | 'desc';
+}
+
+// Pagination metadata returned from API
+export interface PaginationInfo {
+    currentPage: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+}
+
+// Response type when pagination is requested
+export interface PaginatedBillsResponse {
+    bills: BillRecord[];
+    pagination: PaginationInfo;
+}
+
 // Generic storage service interface to enable pluggable backends
 export interface IStorageService {
     saveBill(bill: BillRecord): Promise<void> | void;
-    getBills(): Promise<BillRecord[]> | BillRecord[];
+    getBills(params?: BillsFilterParams): Promise<BillRecord[] | PaginatedBillsResponse> | BillRecord[] | PaginatedBillsResponse;
     getBillById(id: string): Promise<BillRecord | undefined> | BillRecord | undefined;
     deleteBill(id: string): Promise<void> | void;
 }

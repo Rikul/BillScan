@@ -1,4 +1,4 @@
-import { BillRecord, IStorageService } from "../types";
+import { BillRecord, IStorageService, BillsFilterParams, PaginatedBillsResponse } from "../types";
 
 const API_URL = '/api'; // We will rely on Vite proxy
 
@@ -16,8 +16,23 @@ export class ApiStorageService implements IStorageService {
         }
     }
 
-    async getBills(): Promise<BillRecord[]> {
-        const response = await fetch(`${API_URL}/bills`);
+    async getBills(params?: BillsFilterParams): Promise<BillRecord[] | PaginatedBillsResponse> {
+        const url = new URL(`${API_URL}/bills`, window.location.origin);
+        
+        if (params) {
+            if (params.dateFrom) url.searchParams.append('dateFrom', params.dateFrom);
+            if (params.dateTo) url.searchParams.append('dateTo', params.dateTo);
+            if (params.storeName) url.searchParams.append('storeName', params.storeName);
+            if (params.minAmount) url.searchParams.append('minAmount', params.minAmount);
+            if (params.maxAmount) url.searchParams.append('maxAmount', params.maxAmount);
+            if (params.searchTerm) url.searchParams.append('searchTerm', params.searchTerm);
+            if (params.page !== undefined) url.searchParams.append('page', params.page.toString());
+            if (params.pageSize !== undefined) url.searchParams.append('pageSize', params.pageSize.toString());
+            if (params.sortField) url.searchParams.append('sortField', params.sortField);
+            if (params.sortDirection) url.searchParams.append('sortDirection', params.sortDirection);
+        }
+        
+        const response = await fetch(url.toString());
         if (!response.ok) {
             throw new Error(`Failed to fetch bills: ${response.statusText}`);
         }
