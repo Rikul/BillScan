@@ -10,19 +10,68 @@ import FilterPanel, { FilterState, loadFiltersFromStorage } from "../components/
 type SortField = 'date' | 'storeName' | 'total' | 'tax' | 'subtotal';
 type SortDirection = 'asc' | 'desc';
 
+interface PaginationSortState {
+    currentPage: number;
+    sortField: SortField;
+    sortDirection: SortDirection;
+}
+
+const PAGINATION_SORT_STORAGE_KEY = "billscan_pagination_sort";
+
+const defaultPaginationSort: PaginationSortState = {
+    currentPage: 1,
+    sortField: 'date',
+    sortDirection: 'desc',
+};
+
+// Load pagination and sort state from localStorage
+const loadPaginationSortFromStorage = (): PaginationSortState => {
+    try {
+        const stored = localStorage.getItem(PAGINATION_SORT_STORAGE_KEY);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            return { ...defaultPaginationSort, ...parsed };
+        }
+    } catch (e) {
+        console.error("Failed to load pagination/sort from localStorage:", e);
+    }
+    return defaultPaginationSort;
+};
+
+// Save pagination and sort state to localStorage
+const savePaginationSortToStorage = (state: PaginationSortState): void => {
+    try {
+        localStorage.setItem(PAGINATION_SORT_STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+        console.error("Failed to save pagination/sort to localStorage:", e);
+    }
+};
+
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
     const [bills, setBills] = useState<BillRecord[]>([]);
     const [allBills, setAllBills] = useState<BillRecord[]>([]); // For stats calculation
     const [searchTerm, setSearchTerm] = useState("");
-    const [currentPage, setCurrentPage] = useState(1);
-    const [sortField, setSortField] = useState<SortField>('date');
-    const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+    
+    // Initialize pagination and sort state from localStorage using lazy initialization
+    const [paginationSortState] = useState(loadPaginationSortFromStorage);
+    const [currentPage, setCurrentPage] = useState(paginationSortState.currentPage);
+    const [sortField, setSortField] = useState<SortField>(paginationSortState.sortField);
+    const [sortDirection, setSortDirection] = useState<SortDirection>(paginationSortState.sortDirection);
+    
     const [filters, setFilters] = useState<FilterState>(loadFiltersFromStorage);
     const [appliedFilters, setAppliedFilters] = useState<FilterState>(loadFiltersFromStorage);
     const [pagination, setPagination] = useState<PaginationInfo | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const billsPerPage = 20;
+    
+    // Track if this is the initial mount to avoid resetting page on initial load
+    const isInitialMount = React.useRef(true);
+    
+    // Save pagination and sort state to localStorage when they change
+    useEffect(() => {
+        savePaginationSortToStorage({ currentPage, sortField, sortDirection });
+    }, [currentPage, sortField, sortDirection]);
 
     // Fetch bills from API with server-side filtering and pagination
     const fetchBills = useCallback(async () => {
@@ -62,8 +111,12 @@ const Dashboard: React.FC = () => {
         fetchBills();
     }, [fetchBills]);
 
-    // Reset to first page when applied filters change
+    // Reset to first page when applied filters change, but skip initial mount
     useEffect(() => {
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
         setCurrentPage(1);
     }, [appliedFilters , searchTerm  ]);
 
