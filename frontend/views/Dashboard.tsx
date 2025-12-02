@@ -19,6 +19,7 @@ const Dashboard: React.FC = () => {
     const [sortField, setSortField] = useState<SortField>('date');
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
     const [filters, setFilters] = useState<FilterState>(loadFiltersFromStorage);
+    const [appliedFilters, setAppliedFilters] = useState<FilterState>(loadFiltersFromStorage);
     const [pagination, setPagination] = useState<PaginationInfo | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const billsPerPage = 20;
@@ -28,11 +29,11 @@ const Dashboard: React.FC = () => {
         setIsLoading(true);
         try {
             const response = await getBills({
-                dateFrom: filters.dateFrom || undefined,
-                dateTo: filters.dateTo || undefined,
-                storeName: filters.storeName || undefined,
-                minAmount: filters.minAmount || undefined,
-                maxAmount: filters.maxAmount || undefined,
+                dateFrom: appliedFilters.dateFrom || undefined,
+                dateTo: appliedFilters.dateTo || undefined,
+                storeName: appliedFilters.storeName || undefined,
+                minAmount: appliedFilters.minAmount || undefined,
+                maxAmount: appliedFilters.maxAmount || undefined,
                 searchTerm: searchTerm || undefined,
                 page: currentPage,
                 pageSize: billsPerPage,
@@ -55,16 +56,21 @@ const Dashboard: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [filters, searchTerm, currentPage, sortField, sortDirection, billsPerPage]);
+    }, [appliedFilters, searchTerm, currentPage, sortField, sortDirection, billsPerPage]);
 
     useEffect(() => {
         fetchBills();
     }, [fetchBills]);
 
-    // Reset to first page when filters change
+    // Reset to first page when applied filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [filters, searchTerm]);
+    }, [appliedFilters, searchTerm]);
+
+    // Handler to apply filters when button is clicked
+    const handleApplyFilters = useCallback(() => {
+        setAppliedFilters(filters);
+    }, [filters]);
 
     const handleSort = (field: SortField) => {
         if (sortField === field) {
@@ -156,7 +162,7 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 {/* Filter Panel */}
-                <FilterPanel filters={filters} onFiltersChange={setFilters} />
+                <FilterPanel filters={filters} onFiltersChange={setFilters} onApplyFilters={handleApplyFilters} />
 
                 {/* Bills Table */}
                 <div className="space-y-4">

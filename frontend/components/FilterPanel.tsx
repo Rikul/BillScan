@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Filter, X, ChevronDown, ChevronUp } from "lucide-react";
-import { Input, Label } from "./UI";
+import { Filter, X, ChevronDown, ChevronUp, Search } from "lucide-react";
+import { Input, Label, Button } from "./UI";
 
 export interface FilterState {
     dateFrom: string;
@@ -57,9 +57,10 @@ export const hasActiveFilters = (filters: FilterState): boolean => {
 interface FilterPanelProps {
     filters: FilterState;
     onFiltersChange: (filters: FilterState | ((prev: FilterState) => FilterState)) => void;
+    onApplyFilters: () => void;
 }
 
-const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFiltersChange }) => {
+const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFiltersChange, onApplyFilters }) => {
     const [isExpanded, setIsExpanded] = useState(() => hasActiveFilters(filters));
 
     // Save filters whenever they change
@@ -209,6 +210,14 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFiltersChange }) =
                             Warning: "Max Amount" must be greater than or equal to "Min Amount"
                         </div>
                     )}
+
+                    {/* Apply Filters Button */}
+                    <div className="mt-4 flex justify-end">
+                        <Button onClick={onApplyFilters}>
+                            <Search className="w-4 h-4 mr-2" />
+                            Apply Filters
+                        </Button>
+                    </div>
 
                     {/* Active Filters Summary */}
                     {activeFilterCount > 0 && (
