@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Receipt, TrendingUp, Calendar, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Search, Receipt, TrendingUp, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Download } from "lucide-react";
 import { BillRecord, PaginatedBillsResponse, PaginationInfo } from "../types";
 import { getBills } from "../services/storageService";
 import { Button, Card, Header, Input } from "../components/UI";
@@ -136,6 +136,25 @@ const Dashboard: React.FC = () => {
         setCurrentPage(1); // Reset to first page when sorting
     };
 
+    const handleExportToCSV = useCallback(() => {
+        // Build query string with current filters
+        const params = new URLSearchParams();
+        
+        if (appliedFilters.dateFrom) params.append('dateFrom', appliedFilters.dateFrom);
+        if (appliedFilters.dateTo) params.append('dateTo', appliedFilters.dateTo);
+        if (appliedFilters.storeName) params.append('storeName', appliedFilters.storeName);
+        if (appliedFilters.minAmount) params.append('minAmount', appliedFilters.minAmount);
+        if (appliedFilters.maxAmount) params.append('maxAmount', appliedFilters.maxAmount);
+        
+        // Add sorting parameters
+        params.append('sortField', sortField);
+        params.append('sortDirection', sortDirection);
+        
+        // Open the export URL in a new window/tab to trigger download
+        const exportUrl = `/api/bills/export/csv?${params.toString()}`;
+        window.open(exportUrl, '_blank');
+    }, [appliedFilters, sortField, sortDirection]);
+
     const renderSortIcon = (field: SortField) => {
         if (sortField !== field) {
             return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
@@ -206,6 +225,14 @@ const Dashboard: React.FC = () => {
 
                 {/* Filter Panel */}
                 <FilterPanel filters={filters} onFiltersChange={setFilters} onApplyFilters={handleApplyFilters} />
+
+                {/* Export Button */}
+                <div className="flex justify-end">
+                    <Button onClick={handleExportToCSV} variant="secondary">
+                        <Download className="w-4 h-4 mr-2" />
+                        Export to CSV
+                    </Button>
+                </div>
 
                 {/* Bills Table */}
                 <div className="space-y-4">

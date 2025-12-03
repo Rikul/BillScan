@@ -418,6 +418,100 @@ app.delete("/api/delete-image/:billId", async (req, res) => {
     }
 });
 
+// GET /api/bills/export/csv - Export bills as CSV with filtering
+app.get("/api/bills/export/csv", async (req, res) => {
+    try {
+        const db = await getDb();
+
+        // Parse query parameters for filtering (same as /api/bills)
+        const {
+            dateFrom,
+            dateTo,
+            storeName,
+            minAmount,
+            maxAmount,
+            searchTerm,
+            sortField = 'date',
+            sortDirection = 'desc'
+        } = req.query;
+
+        // Build WHERE clause
+        const conditions = [];
+        const params = [];
+
+        if (dateFrom) {
+            conditions.push("date >= ?");
+            params.push(dateFrom);
+        }
+        if (dateTo) {
+            conditions.push("date <= ?");
+            params.push(dateTo);
+        }
+        if (storeName) {
+            conditions.push("LOWER(storeName) LIKE ?");
+            params.push(`%${storeName.toLowerCase()}%`);
+        }
+        if (minAmount) {
+            const minAmountNum = Number(minAmount);
+            if (!isNaN(minAmountNum) && String(minAmountNum) === String(minAmount).trim()) {
+                conditions.push("total >= ?");
+                params.push(minAmountNum);
+            }
+        }
+        if (maxAmount) {
+            const maxAmountNum = Number(maxAmount);
+            if (!isNaN(maxAmountNum) && String(maxAmountNum) === String(maxAmount).trim()) {
+                conditions.push("total <= ?");
+                params.push(maxAmountNum);
+            }
+        }
+        if (searchTerm) {
+            conditions.push("(LOWER(storeName) LIKE ? OR date LIKE ?)");
+            params.push(`%${searchTerm.toLowerCase()}%`, `%${searchTerm}%`);
+        }
+
+        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+        // Validate and sanitize sort parameters
+        const allowedSortFields = ['date', 'storeName', 'total', 'tax', 'subtotal'];
+        const sanitizedSortField = allowedSortFields.includes(sortField) ? sortField : 'date';
+        const sanitizedSortDirection = sortDirection === 'asc' ? 'ASC' : 'DESC';
+
+        // Build ORDER BY clause
+        const orderClause = `ORDER BY ${sanitizedSortField} ${sanitizedSortDirection}`;
+
+        // Fetch all bills matching the filter (no pagination for export)
+        const query = `SELECT * FROM bills ${whereClause} ${orderClause}`;
+        const bills = await db.all(query, params);
+
+        // Convert to CSV format
+        const headers = ['Date', 'Store Name', 'Subtotal', 'Tax', 'Total', 'Currency'];
+        const csvRows = [headers.join(',')];
+
+        bills.forEach(bill => {
+            const row = [
+                bill.date,
+                `"${(bill.storeName || '').replace(/"/g, '""')}"`, // Escape quotes in store name
+                bill.subtotal,
+                bill.tax,
+                bill.total,
+                bill.currency || 'USD'
+            ];
+            csvRows.push(row.join(','));
+        });
+
+        const csvContent = csvRows.join('\n');
+
+        // Set headers for CSV download
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="bills-export-${new Date().toISOString().split('T')[0]}.csv"`);
+        res.send(csvContent);
+    } catch (err) {
+        console.error("Error exporting bills to CSV:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
