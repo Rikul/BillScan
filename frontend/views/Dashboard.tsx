@@ -152,7 +152,7 @@ const Dashboard: React.FC = () => {
         
         // Open the export URL in a new window/tab to trigger download
         const exportUrl = `/api/bills/export/csv?${params.toString()}`;
-        window.open(exportUrl, '_blank');
+        window.open(exportUrl, '_blank', 'noopener,noreferrer');
     }, [appliedFilters, sortField, sortDirection]);
 
     const renderSortIcon = (field: SortField) => {
