@@ -484,18 +484,31 @@ app.get("/api/bills/export/csv", async (req, res) => {
         const query = `SELECT * FROM bills ${whereClause} ${orderClause}`;
         const bills = await db.all(query, params);
 
+        // Helper function to escape CSV fields
+        const escapeCSVField = (field) => {
+            if (field === null || field === undefined) {
+                return '';
+            }
+            const fieldStr = String(field);
+            // If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
+            if (fieldStr.includes(',') || fieldStr.includes('"') || fieldStr.includes('\n') || fieldStr.includes('\r')) {
+                return `"${fieldStr.replace(/"/g, '""')}"`;
+            }
+            return fieldStr;
+        };
+
         // Convert to CSV format
         const headers = ['Date', 'Store Name', 'Subtotal', 'Tax', 'Total', 'Currency'];
         const csvRows = [headers.join(',')];
 
         bills.forEach(bill => {
             const row = [
-                bill.date,
-                `"${(bill.storeName || '').replace(/"/g, '""')}"`, // Escape quotes in store name
-                bill.subtotal,
-                bill.tax,
-                bill.total,
-                bill.currency || 'USD'
+                escapeCSVField(bill.date),
+                escapeCSVField(bill.storeName),
+                escapeCSVField(bill.subtotal),
+                escapeCSVField(bill.tax),
+                escapeCSVField(bill.total),
+                escapeCSVField(bill.currency || 'USD')
             ];
             csvRows.push(row.join(','));
         });
