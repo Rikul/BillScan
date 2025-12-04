@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Receipt, TrendingUp, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Download } from "lucide-react";
-import { BillRecord, PaginatedBillsResponse, PaginationInfo } from "../types";
-import { getBills } from "../services/storageService";
+import { BillRecord, PaginatedBillsResponse, PaginationInfo, StatsResponse } from "../types";
+import { getBills, getStats } from "../services/storageService";
 import { Button, Card, Header, Input } from "../components/UI";
 import { formatCurrency, formatDate } from "../utils";
 import FilterPanel, { FilterState, loadFiltersFromStorage } from "../components/FilterPanel";
@@ -51,7 +51,7 @@ const savePaginationSortToStorage = (state: PaginationSortState): void => {
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
     const [bills, setBills] = useState<BillRecord[]>([]);
-    const [allBills, setAllBills] = useState<BillRecord[]>([]); // For stats calculation
+    const [stats, setStats] = useState<StatsResponse>({ yearToDate: 0, last30Days: 0 });
     const [searchTerm, setSearchTerm] = useState("");
     
     // Initialize pagination and sort state from localStorage using lazy initialization
@@ -108,9 +108,26 @@ const Dashboard: React.FC = () => {
         }
     }, [appliedFilters, searchTerm, currentPage, sortField, sortDirection, billsPerPage]);
 
+    // Fetch stats from API with the same filters
+    const fetchStats = useCallback(async () => {
+        try {
+            const statsResponse = await getStats({
+                dateFrom: appliedFilters.dateFrom || undefined,
+                dateTo: appliedFilters.dateTo || undefined,
+                storeName: appliedFilters.storeName || undefined,
+                minAmount: appliedFilters.minAmount || undefined,
+                maxAmount: appliedFilters.maxAmount || undefined,
+            });
+            setStats(statsResponse);
+        } catch (error) {
+            console.error("Error fetching stats:", error);
+        }
+    }, [appliedFilters]);
+
     useEffect(() => {
         fetchBills();
-    }, [fetchBills]);
+        fetchStats();
+    }, [fetchBills, fetchStats]);
 
     // Reset to first page when applied filters change, but skip initial mount
     useEffect(() => {
@@ -166,20 +183,6 @@ const Dashboard: React.FC = () => {
 
     const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-    // Calculate stats from all bills (without filters) - memoized for performance
-    const { totalSpent, lastMonthTotal } = useMemo(() => {
-        const total = allBills.reduce((acc, curr) => acc + (curr.total || 0), 0);
-        const lastMonth = allBills.reduce((acc, curr) => {
-            const [year, month, day] = curr.date.split('-').map(Number);
-            const date = new Date(year, month - 1, day);
-            const now = new Date();
-            const diffTime = Math.abs(now.getTime() - date.getTime());
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            return diffDays <= 30 ? acc + (curr.total || 0) : acc;
-        }, 0);
-        return { totalSpent: total, lastMonthTotal: lastMonth };
-    }, [allBills]);
-
     // Pagination values from server response
     const totalPages = pagination?.totalPages ?? 0;
     const totalCount = pagination?.totalCount ?? bills.length;
@@ -191,36 +194,38 @@ const Dashboard: React.FC = () => {
             <div className="px-6 max-w-7xl mx-auto space-y-8">
                 {/* Stats Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card className="p-4 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white border-none shadow-lg relative overflow-hidden">
+                    <Card className="p-6 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white border-none shadow-lg relative overflow-hidden">
                         <div className="relative z-10">
-                            <div className="flex items-center gap-4 mb-2">
-                                <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
-                                    <TrendingUp className="w-6 h-6 text-indigo-100" />
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-3 bg-white/10 rounded-lg backdrop-blur-sm">
+                                    <TrendingUp className="w-7 h-7 text-indigo-100" />
                                 </div>
                                 <div>
-                                    <p className="text-indigo-200 text-xs font-medium uppercase tracking-wider">Total Tracked</p>
-                                    <h2 className="text-2xl font-bold tracking-tight mt-1">{formatCurrency(totalSpent)}</h2>
+                                    <p className="text-indigo-200 text-xs font-medium uppercase tracking-wider">Year to Date</p>
+                                    <h2 className="text-3xl font-bold tracking-tight mt-1">{formatCurrency(stats.yearToDate)}</h2>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 text-indigo-100 text-xs bg-white/10 p-1 px-2 rounded-md w-fit backdrop-blur-sm mt-2">
-                                <Calendar className="w-3 h-3" />
-                                <span>Last 30 days: {formatCurrency(lastMonthTotal)}</span>
+                            <div className="flex items-center gap-2 text-indigo-100 text-sm bg-white/10 p-2 px-3 rounded-md w-fit backdrop-blur-sm">
+                                <Calendar className="w-4 h-4" />
+                                <span>Last 30 days: <span className="font-semibold">{formatCurrency(stats.last30Days)}</span></span>
                             </div>
                         </div>
                         <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-1/4 translate-y-1/4">
-                            <Receipt className="w-32 h-32 text-white" />
+                            <Receipt className="w-40 h-40 text-white" />
                         </div>
                     </Card>
 
-                    <div className="hidden md:flex flex-col justify-center p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">Quick Actions</h3>
-                        <p className="text-gray-500 text-sm mb-3">Manage your expenses efficiently.</p>
-                        <div className="flex gap-4">
-                            <Button onClick={() => navigate('/upload')} className="flex-1">
-                                <Plus className="w-5 h-5 mr-2" /> Upload Receipt
-                            </Button>
+                    <Card className="p-6 bg-gradient-to-br from-green-500 to-emerald-600 text-white border-none shadow-lg hover:shadow-xl transition-shadow cursor-pointer" onClick={() => navigate('/upload')}>
+                        <div className="flex items-center justify-between h-full">
+                            <div>
+                                <h3 className="text-xl font-bold mb-2">Upload New Receipt</h3>
+                                <p className="text-green-50 text-sm opacity-90">Scan and track your expenses instantly</p>
+                            </div>
+                            <div className="p-4 bg-white/20 rounded-full backdrop-blur-sm hover:bg-white/30 transition-colors">
+                                <Plus className="w-8 h-8" />
+                            </div>
                         </div>
-                    </div>
+                    </Card>
                 </div>
 
                 {/* Filter Panel */}

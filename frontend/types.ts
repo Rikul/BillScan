@@ -49,11 +49,18 @@ export interface PaginatedBillsResponse {
     pagination: PaginationInfo;
 }
 
+// Stats response from the API
+export interface StatsResponse {
+    yearToDate: number;
+    last30Days: number;
+}
+
 // Generic storage service interface to enable pluggable backends
 export interface IStorageService {
     saveBill(bill: BillRecord): Promise<void> | void;
     getBills(params?: BillsFilterParams): Promise<BillRecord[] | PaginatedBillsResponse> | BillRecord[] | PaginatedBillsResponse;
     getBillById(id: string): Promise<BillRecord | undefined> | BillRecord | undefined;
     deleteBill(id: string): Promise<void> | void;
+    getStats(params?: BillsFilterParams): Promise<StatsResponse> | StatsResponse;
 }
 

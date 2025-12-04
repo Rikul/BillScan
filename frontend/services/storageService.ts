@@ -1,4 +1,4 @@
-import { BillRecord, IStorageService, BillsFilterParams, PaginatedBillsResponse } from "../types";
+import { BillRecord, IStorageService, BillsFilterParams, PaginatedBillsResponse, StatsResponse } from "../types";
 import { ApiStorageService } from "./apiStorageService";
 
 // Currently using API storage service
@@ -10,5 +10,6 @@ export const saveBill = async (bill: BillRecord) => await service.saveBill(bill)
 export const getBills = async (params?: BillsFilterParams): Promise<BillRecord[] | PaginatedBillsResponse> => await service.getBills(params);
 export const getBillById = async (id: string) => await service.getBillById(id);
 export const deleteBill = async (id: string) => await service.deleteBill(id);
+export const getStats = async (params?: BillsFilterParams): Promise<StatsResponse> => await service.getStats(params);
 
 export const storageService = service;
