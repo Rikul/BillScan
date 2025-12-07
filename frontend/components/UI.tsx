@@ -37,15 +37,15 @@ export const Card: React.FC<{ children: React.ReactNode; className?: string; onC
 );
 
 export const Header: React.FC<{ title: string; onBack?: () => void; action?: React.ReactNode }> = ({ title, onBack, action }) => (
-    <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-100 px-6 py-4 mb-6 flex items-center justify-between transition-all">
-        <div className="flex items-left gap-3">
+    <div className="sticky top-0 z-10 bg-gradient-to-r from-indigo-50 via-white to-purple-50 backdrop-blur-md border-b border-indigo-100 px-6 py-6 mb-8 flex items-center justify-between transition-all shadow-sm">
+        <div className="flex items-center gap-3">
             {onBack && (
-                <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600">
+                <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-100 transition-colors text-indigo-600">
                     <ArrowLeft className="w-5 h-5" />
                 </button>
             )}
         </div>
-        <div className="text-lg font-bold text-gray-900">{title}</div>
+        <div className="text-4xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent tracking-tight">{title}</div>
         <div className="flex items-center gap-3">
             {action}
         </div>

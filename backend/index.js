@@ -470,35 +470,11 @@ app.get("/api/stats", async (req, res) => {
 
         const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-        // Calculate year-to-date total
-        const currentYear = new Date().getFullYear();
-        const ytdConditions = [...conditions];
-        const ytdParams = [...params];
-        ytdConditions.push("date >= ?");
-        ytdParams.push(`${currentYear}-01-01`);
-        const ytdWhereClause = `WHERE ${ytdConditions.join(" AND ")}`;
+        // Calculate total
+        const query = `SELECT COALESCE(SUM(total), 0) as total FROM bills ${whereClause}`;
+        const result = await db.get(query, params);
 
-        const ytdQuery = `SELECT COALESCE(SUM(total), 0) as total FROM bills ${ytdWhereClause}`;
-        const ytdResult = await db.get(ytdQuery, ytdParams);
-
-        // Calculate last 30 days total
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
-
-        const last30DaysConditions = [...conditions];
-        const last30DaysParams = [...params];
-        last30DaysConditions.push("date >= ?");
-        last30DaysParams.push(thirtyDaysAgoStr);
-        const last30DaysWhereClause = `WHERE ${last30DaysConditions.join(" AND ")}`;
-
-        const last30DaysQuery = `SELECT COALESCE(SUM(total), 0) as total FROM bills ${last30DaysWhereClause}`;
-        const last30DaysResult = await db.get(last30DaysQuery, last30DaysParams);
-
-        res.json({
-            yearToDate: ytdResult.total,
-            last30Days: last30DaysResult.total
-        });
+        res.json({ total: result.total });
     } catch (err) {
         console.error("Error fetching stats:", err);
         res.status(500).json({ error: err.message });

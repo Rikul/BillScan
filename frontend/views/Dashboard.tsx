@@ -51,7 +51,7 @@ const savePaginationSortToStorage = (state: PaginationSortState): void => {
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
     const [bills, setBills] = useState<BillRecord[]>([]);
-    const [stats, setStats] = useState<StatsResponse>({ yearToDate: 0, last30Days: 0 });
+    const [stats, setStats] = useState<StatsResponse>({ total: 0 });
     const [searchTerm, setSearchTerm] = useState("");
     
     // Initialize pagination and sort state from localStorage using lazy initialization
@@ -191,23 +191,19 @@ const Dashboard: React.FC = () => {
         <div className="min-h-screen pb-24 bg-gray-50 animate-fade-in">
             <Header title="BillScan" />
 
-            <div className="px-6 max-w-7xl mx-auto space-y-8">
+            <div className="px-6 max-w-7xl mx-auto space-y-8 mt-6">
                 {/* Stats Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card className="p-6 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white border-none shadow-lg relative overflow-hidden">
+                    <Card className="p-3 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white border-none shadow-lg relative overflow-hidden">
                         <div className="relative z-10">
                             <div className="flex items-center gap-3 mb-4">
-                                <div className="p-3 bg-white/10 rounded-lg backdrop-blur-sm">
+                                <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
                                     <TrendingUp className="w-7 h-7 text-indigo-100" />
                                 </div>
                                 <div>
-                                    <p className="text-indigo-200 text-xs font-medium uppercase tracking-wider">Year to Date</p>
-                                    <h2 className="text-3xl font-bold tracking-tight mt-1">{formatCurrency(stats.yearToDate)}</h2>
+                                    <p className="text-indigo-200 text-xs font-medium uppercase tracking-wider">Total</p>
+                                    <h2 className="text-3xl font-bold tracking-tight mt-1">{formatCurrency(stats.total)}</h2>
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-2 text-indigo-100 text-sm bg-white/10 p-2 px-3 rounded-md w-fit backdrop-blur-sm">
-                                <Calendar className="w-4 h-4" />
-                                <span>Last 30 days: <span className="font-semibold">{formatCurrency(stats.last30Days)}</span></span>
                             </div>
                         </div>
                         <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-1/4 translate-y-1/4">
@@ -215,13 +211,13 @@ const Dashboard: React.FC = () => {
                         </div>
                     </Card>
 
-                    <Card className="p-6 bg-gradient-to-br from-green-500 to-emerald-600 text-white border-none shadow-lg hover:shadow-xl transition-shadow cursor-pointer" onClick={() => navigate('/upload')}>
+                    <Card className="p-3 bg-gradient-to-br from-green-500 to-emerald-800 text-white border-none shadow-lg hover:shadow-xl transition-shadow cursor-pointer" onClick={() => navigate('/upload')}>
                         <div className="flex items-center justify-between h-full">
                             <div>
                                 <h3 className="text-xl font-bold mb-2">Upload New Receipt</h3>
                                 <p className="text-green-50 text-sm opacity-90">Scan and track your expenses instantly</p>
                             </div>
-                            <div className="p-4 bg-white/20 rounded-full backdrop-blur-sm hover:bg-white/30 transition-colors">
+                            <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm hover:bg-white/30 transition-colors">
                                 <Plus className="w-8 h-8" />
                             </div>
                         </div>

@@ -51,8 +51,7 @@ export interface PaginatedBillsResponse {
 
 // Stats response from the API
 export interface StatsResponse {
-    yearToDate: number;
-    last30Days: number;
+    total: number;
 }
 
 // Generic storage service interface to enable pluggable backends
