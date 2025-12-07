@@ -67,6 +67,13 @@ BillScan supports multiple AI services for bill/receipt extraction. Configure wh
 
 If `AI_SERVICE` is not set, the application defaults to `gemini`
 
+## Screenshots
+
+![Dashboard](./assets/Screenshot%202025-12-06%20202412.png)
+![Upload Receipt](./assets/Screenshot%202025-12-06%20202430.png)
+![Bill Details](./assets/Screenshot%202025-12-06%20202532.png)
+![Extracted Data](./assets/Screenshot%202025-12-06%20202629.png)
+
 ## Quick Start with Docker
 
 The easiest way to run BillScan is with Docker Compose:
